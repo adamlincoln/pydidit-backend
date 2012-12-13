@@ -1,5 +1,6 @@
 import ConfigParser
 import datetime
+import os
 
 #from sqlalchemy import create_engine
 from sqlalchemy import engine_from_config
@@ -23,13 +24,15 @@ from models import Base
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 
-def initialize(ini_filename):
+def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'), os.path.expanduser('~/.pydidit-backendrc')), external_config_fp=None):
     ini = ConfigParser.SafeConfigParser()
-    ini.read(ini_filename)
-    settings = dict(ini.items('app:main'))
+    ini.read(ini_filenames)
+    allow_external_config = ini.getboolean('backend', 'allow_external_config')
+    if allow_external_config == True and external_config_fp is not None:
+        ini.readfp(external_config_fp)
+    settings = dict(ini.items('backend'))
 
     engine = engine_from_config(settings, 'sqlalchemy.')
-    #Base = models.Base
     Base.metadata.bind = engine
     DBSession.configure(bind = engine)
 
