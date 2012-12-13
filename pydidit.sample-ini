@@ -1,6 +1,8 @@
-[app:main]
+[backend]
 sqlalchemy.url = sqlite:///pydidit.db
 sqlalchemy.echo = True
+
+allow_external_config = False
 
 # Begin logging configuration
 
