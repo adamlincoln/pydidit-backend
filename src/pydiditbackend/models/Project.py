@@ -19,49 +19,59 @@ from zope.sqlalchemy import ZopeTransactionExtension
 import pydiditbackend.models
 Base = pydiditbackend.models.Base
 
+
 class Project(Base):
     '''Project object'''
     __tablename__ = 'projects'
 
-    id = Column(Integer, autoincrement = True, nullable = False, primary_key = True)
-    description = Column(Unicode(length = 255), nullable = True)
+    id = Column(Integer, autoincrement=True, nullable=False, primary_key=True)
+    description = Column(Unicode(length=255), nullable=True)
     state = Column(Enum(
         'active',
         'completed',
-    ), nullable = False)
-    due = Column(DateTime(), nullable = True)
-    created_at = Column(DateTime(), nullable = False, default = datetime.now)
-    completed_at = Column(DateTime(), nullable = True)
-    modified_at = Column(DateTime(), nullable = False, onupdate = datetime.now)
-    display_position = Column(Unicode(length = 50), nullable = False)
+    ), nullable=False)
+    due = Column(DateTime(), nullable=True)
+    created_at = Column(DateTime(), nullable=False, default=datetime.now)
+    completed_at = Column(DateTime(), nullable=True)
+    modified_at = Column(DateTime(), nullable=False, onupdate=datetime.now)
+    display_position = Column(Unicode(length=50), nullable=False)
 
-    prereq_projects = relation('Project',
-        backref = 'dependent_projects',
-        secondary = 'projects_prereq_projects',
-        primaryjoin = id == pydiditbackend.models.projects_prereq_projects.c.project_id,
-        secondaryjoin = id == pydiditbackend.models.projects_prereq_projects.c.prereq_id,
+    prereq_projects = relation(
+        'Project',
+        backref='dependent_projects',
+        secondary='projects_prereq_projects',
+        primaryjoin=
+            id == pydiditbackend.models.projects_prereq_projects.c.project_id,
+        secondaryjoin=
+            id == pydiditbackend.models.projects_prereq_projects.c.prereq_id,
     )
 
-    child_projects = relation('Project',
-        backref = 'parent_projects',
-        secondary = 'projects_contain_projects',
-        primaryjoin = id == pydiditbackend.models.projects_contain_projects.c.parent_id,
-        secondaryjoin = id == pydiditbackend.models.projects_contain_projects.c.child_id,
+    child_projects = relation(
+        'Project',
+        backref='parent_projects',
+        secondary='projects_contain_projects',
+        primaryjoin=
+            id == pydiditbackend.models.projects_contain_projects.c.parent_id,
+        secondaryjoin=
+            id == pydiditbackend.models.projects_contain_projects.c.child_id,
     )
 
-    child_todos = relation('Todo',
-        backref = 'parent_projects',
-        secondary = 'projects_contain_todos',
+    child_todos = relation(
+        'Todo',
+        backref='parent_projects',
+        secondary='projects_contain_todos',
     )
 
-    notes  =  relation('Note',
-        backref = 'projects',
-        secondary = 'projects_notes',
+    notes = relation(
+        'Note',
+        backref='projects',
+        secondary='projects_notes',
     )
 
-    tags  =  relation('Tag',
-        backref = 'projects',
-        secondary = 'projects_tags',
+    tags = relation(
+        'Tag',
+        backref='projects',
+        secondary='projects_tags',
     )
 
     def __init__(self, description, state=u'active', due=None, show_from=None):
@@ -84,4 +94,3 @@ class Project(Base):
 
     def __str__(self):
         return '<Project: {0} {1}>'.format(self.id, self.description)
-
