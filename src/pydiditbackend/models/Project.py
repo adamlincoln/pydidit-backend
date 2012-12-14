@@ -6,16 +6,8 @@ from sqlalchemy import Integer
 from sqlalchemy import Enum
 from sqlalchemy import DateTime
 
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import relation
 
-#from sqlalchemy.ext.declarative import declarative_base
-
-from zope.sqlalchemy import ZopeTransactionExtension
-
-#DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
-#Base = declarative_base()
 import pydiditbackend.models
 Base = pydiditbackend.models.Base
 
@@ -41,9 +33,11 @@ class Project(Base):
         backref='dependent_projects',
         secondary='projects_prereq_projects',
         primaryjoin=
-            id == pydiditbackend.models.projects_prereq_projects.c.project_id,
+                id == pydiditbackend.models.
+                projects_prereq_projects.c.project_id,
         secondaryjoin=
-            id == pydiditbackend.models.projects_prereq_projects.c.prereq_id,
+                id == pydiditbackend.models.
+                projects_prereq_projects.c.prereq_id,
     )
 
     child_projects = relation(
@@ -51,9 +45,11 @@ class Project(Base):
         backref='parent_projects',
         secondary='projects_contain_projects',
         primaryjoin=
-            id == pydiditbackend.models.projects_contain_projects.c.parent_id,
+                id == pydiditbackend.models.
+                projects_contain_projects.c.parent_id,
         secondaryjoin=
-            id == pydiditbackend.models.projects_contain_projects.c.child_id,
+                id == pydiditbackend.models.
+                projects_contain_projects.c.child_id,
     )
 
     child_todos = relation(

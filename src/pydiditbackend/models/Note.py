@@ -5,16 +5,6 @@ from sqlalchemy import UnicodeText
 from sqlalchemy import Integer
 from sqlalchemy import DateTime
 
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import relation
-
-#from sqlalchemy.ext.declarative import declarative_base
-
-from zope.sqlalchemy import ZopeTransactionExtension
-
-#DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
-#Base = declarative_base()
 import pydiditbackend.models
 Base = pydiditbackend.models.Base
 

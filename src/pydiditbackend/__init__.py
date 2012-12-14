@@ -1,24 +1,15 @@
 import ConfigParser
-import datetime
 import os
 
-#from sqlalchemy import create_engine
 from sqlalchemy import engine_from_config
-from sqlalchemy import desc
 
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import relation
-
-from sqlalchemy.ext.declarative import declarative_base
 
 from zope.sqlalchemy import ZopeTransactionExtension
 import transaction
 
 from models.Todo import Todo
-from models.Project import Project
-from models.Note import Note
-from models.Tag import Tag
 
 from models import Base
 
@@ -58,7 +49,7 @@ def _display_position_compare(x, y):
     x_components = x.split(u'.')
     y_components = y.split(u'.')
     common_depth = 0
-    final_winner = None
+    final_resolution = None
     if len(x_components) > len(y_components):
         common_depth = len(x_components)
         final_resolution = 1  # See comment below
