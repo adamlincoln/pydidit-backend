@@ -20,14 +20,15 @@ Base = pydiditbackend.models.Base
 
 # Example package with a console entry point
 
+
 class Tag(Base):
     '''Tag object'''
     __tablename__ = 'tags'
 
-    id = Column(Integer, autoincrement = True, nullable = False, primary_key = True)
-    name = Column(Unicode(length = 255), nullable = True)
-    created_at = Column(DateTime(), nullable = False, default = datetime.now)
-    modified_at = Column(DateTime(), nullable = False, onupdate = datetime.now)
+    id = Column(Integer, autoincrement=True, nullable=False, primary_key=True)
+    name = Column(Unicode(length=255), nullable=True)
+    created_at = Column(DateTime(), nullable=False, default=datetime.now)
+    modified_at = Column(DateTime(), nullable=False, onupdate=datetime.now)
 
     def __init__(self, name=None):
         '''Create a new Tag instance
@@ -39,4 +40,3 @@ class Tag(Base):
 
     def __str__(self):
         return '<Tag: {0} {1}>'.format(self.id, self.name)
-
