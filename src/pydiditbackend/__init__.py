@@ -10,6 +10,9 @@ from zope.sqlalchemy import ZopeTransactionExtension
 import transaction
 
 from models.Todo import Todo
+from models.Project import Project
+from models.Tag import Tag
+from models.Note import Note
 
 from models import Base
 
