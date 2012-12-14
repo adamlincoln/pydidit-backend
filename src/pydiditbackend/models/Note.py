@@ -18,14 +18,15 @@ from zope.sqlalchemy import ZopeTransactionExtension
 import pydiditbackend.models
 Base = pydiditbackend.models.Base
 
+
 class Note(Base):
     '''Note object'''
     __tablename__ = 'notes'
 
-    id = Column(Integer, autoincrement = True, nullable = False, primary_key = True)
-    text = Column(UnicodeText(), nullable = True)
-    created_at = Column(DateTime(), nullable = False, default = datetime.now)
-    modified_at = Column(DateTime(), nullable = False, onupdate = datetime.now)
+    id = Column(Integer, autoincrement=True, nullable=False, primary_key=True)
+    text = Column(UnicodeText(), nullable=True)
+    created_at = Column(DateTime(), nullable=False, default=datetime.now)
+    modified_at = Column(DateTime(), nullable=False, onupdate=datetime.now)
 
     def __init__(self, text=None):
         '''Create a new Note instance
@@ -37,4 +38,3 @@ class Note(Base):
 
     def __str__(self):
         return '<Note: {0} {1}>'.format(self.id, self.text)
-
