@@ -20,46 +20,64 @@ from zope.sqlalchemy import ZopeTransactionExtension
 import pydiditbackend.models
 Base = pydiditbackend.models.Base
 
+
 class Todo(Base):
     '''Todo object'''
     __tablename__ = 'todos'
 
-    id = Column(Integer, autoincrement = True, nullable = False, primary_key = True)
-    description = Column(Unicode(length = 255), nullable = False)
+    id = Column(
+        Integer,
+        autoincrement=True,
+        nullable=False,
+        primary_key=True
+    )
+    description = Column(Unicode(length=255), nullable=False)
     state = Column(Enum(
         'active',
         'completed',
-    ), nullable = False)
-    due = Column(DateTime(), nullable = True)
-    created_at = Column(DateTime(), nullable = False, default = datetime.now)
-    completed_at = Column(DateTime(), nullable = True)
-    modified_at = Column(DateTime(), nullable = False, default = datetime.now, onupdate = datetime.now)
-    show_from = Column(DateTime(), nullable = True)
-    display_position = Column(Unicode(length = 50), nullable = False)
+    ), nullable=False)
+    due = Column(DateTime(), nullable=True)
+    created_at = Column(DateTime(), nullable=False, default=datetime.now)
+    completed_at = Column(DateTime(), nullable=True)
+    modified_at = Column(
+        DateTime(),
+        nullable=False,
+        default=datetime.now,
+        onupdate=datetime.now
+    )
+    show_from = Column(DateTime(), nullable=True)
+    display_position = Column(Unicode(length=50), nullable=False)
 
-    prereq_projects = relation('Project',
+    prereq_projects = relation(
+        'Project',
         backref='dependent_todos',
         secondary='todos_prereq_projects',
     )
 
-    prereq_todos = relation('Todo',
+    prereq_todos = relation(
+        'Todo',
         backref='dependent_todos',
         secondary='todos_prereq_todos',
-        primaryjoin = id == pydiditbackend.models.todos_prereq_todos.c.todo_id,
-        secondaryjoin = id == pydiditbackend.models.todos_prereq_todos.c.prereq_id,
+        primaryjoin=
+                id == pydiditbackend.models.todos_prereq_todos.c.todo_id,
+        secondaryjoin=
+                id == pydiditbackend.models.todos_prereq_todos.c.prereq_id,
     )
 
-    notes = relation('Note',
+    notes = relation(
+        'Note',
         backref='todos',
         secondary='todos_notes',
     )
 
-    tags = relation('Tag',
+    tags = relation(
+        'Tag',
         backref='todos',
         secondary='todos_tags',
     )
 
-    def __init__(self, description, display_position, state=u'active', due=None, show_from=None):
+    def __init__(self, description, display_position, state=u'active',
+                 due=None, show_from=None):
         '''Create a new Todo instance
 
         :param description:
@@ -89,5 +107,5 @@ class Todo(Base):
         self.completed_at = datetime.now()
 
     def __str__(self):
-        return '<Todo: {0} {1} {2}>'.format(self.id, self.description, self.state)
-
+        return '<Todo: {0} {1} {2}>'.format(self.id, self.description,
+                                            self.state)
