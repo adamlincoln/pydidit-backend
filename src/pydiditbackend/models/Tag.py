@@ -18,7 +18,8 @@ class Tag(Base):
     id = Column(Integer, autoincrement=True, nullable=False, primary_key=True)
     name = Column(Unicode(length=255), nullable=True)
     created_at = Column(DateTime(), nullable=False, default=datetime.now)
-    modified_at = Column(DateTime(), nullable=False, onupdate=datetime.now)
+    modified_at = Column(DateTime(), nullable=False, default=datetime.now,
+                         onupdate=datetime.now)
 
     def __init__(self, name=None):
         '''Create a new Tag instance
