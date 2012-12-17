@@ -39,8 +39,10 @@ def get(model_name, all=False, filter_by=None):
     if filter_by is not None:
         query = query.filter_by(**filter_by)
     else:
-        if eval("hasattr({0}, u'state')".format(model_name)) and not all:
+        if eval("hasattr({0}, 'state')".format(model_name)) and not all:
             query = query.filter_by(state=u'active')
+    if eval("hasattr({0}, 'display_position')".format(model_name)):
+        query = query.order_by('display_position')
     return query.all()
 
 
@@ -127,3 +129,7 @@ def put_like(model_instance, description_text_name):
 
 def commit():
     transaction.commit()
+
+
+def flush():
+    DBSession.flush()
