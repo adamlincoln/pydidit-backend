@@ -7,12 +7,14 @@ from sqlalchemy import Enum
 from sqlalchemy import DateTime
 
 from sqlalchemy.orm import relation
+from sqlalchemy.orm import backref
 
 import pydiditbackend.models
+from pydiditbackend.models.Model import Model
 Base = pydiditbackend.models.Base
 
 
-class Project(Base):
+class Project(Model, Base):
     '''Project object'''
     __tablename__ = 'projects'
 
@@ -30,7 +32,7 @@ class Project(Base):
 
     prereq_projects = relation(
         'Project',
-        backref='dependent_projects',
+        backref=backref('dependent_projects', lazy='joined', join_depth=1),
         secondary='projects_prereq_projects',
         primaryjoin=
                 id == pydiditbackend.models.
@@ -38,11 +40,13 @@ class Project(Base):
         secondaryjoin=
                 id == pydiditbackend.models.
                 projects_prereq_projects.c.prereq_id,
+        lazy='joined',
+        join_depth=1,
     )
 
     child_projects = relation(
         'Project',
-        backref='parent_projects',
+        backref=backref('parent_projects', lazy='joined', join_depth=1),
         secondary='projects_contain_projects',
         primaryjoin=
                 id == pydiditbackend.models.
@@ -50,24 +54,30 @@ class Project(Base):
         secondaryjoin=
                 id == pydiditbackend.models.
                 projects_contain_projects.c.child_id,
+        lazy='joined',
+        join_depth=1,
     )
 
     child_todos = relation(
         'Todo',
-        backref='parent_projects',
+        backref=backref('parent_projects', lazy='joined', join_depth=1),
         secondary='projects_contain_todos',
+        lazy='joined',
+        join_depth=1,
     )
 
     notes = relation(
         'Note',
-        backref='projects',
+        backref=backref('projects', lazy='joined'),
         secondary='projects_notes',
+        lazy='joined',
     )
 
     tags = relation(
         'Tag',
-        backref='projects',
+        backref=backref('projects', lazy='joined'),
         secondary='projects_tags',
+        lazy='joined',
     )
 
     def __init__(self, description, state=u'active', due=None, show_from=None):
@@ -83,10 +93,6 @@ class Project(Base):
         self.state = state
 
         self.due = due
-
-    def set_completed(self):
-        self.state = 'completed'
-        self.completed_at = datetime.now()
 
     def __str__(self):
         return '<Project: {0} {1}>'.format(self.id, self.description)

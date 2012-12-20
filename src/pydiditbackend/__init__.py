@@ -1,5 +1,6 @@
 import ConfigParser
 import os
+from datetime import datetime
 
 from sqlalchemy import engine_from_config
 
@@ -42,12 +43,12 @@ def get(model_name, all=False, filter_by=None):
         if eval("hasattr({0}, 'state')".format(model_name)) and not all:
             query = query.filter_by(state=u'active')
     if eval("hasattr({0}, 'display_position')".format(model_name)):
-        query = query.order_by('display_position')
-    return query.all()
+        query = query.order_by(eval('{0}.__table__.c.display_position'.format(model_name)))
+    return [obj.to_dict() for obj in query.all()]
 
 
-def get_like(model_instance, all=False, filter_by=None):
-    return get(str(model_instance.__class__), all, filter_by)
+def get_like(model_dict, all=False, filter_by=None):
+    return get(str(model_dict['type']), all, filter_by)
 
 
 def _display_position_compare(x, y):
@@ -92,39 +93,80 @@ def get_new_lowest_display_position():
 
 
 def make(model_name, description_text_name, display_position=None):
-    parameters = [description_text_name]
-    if model_name == 'Todo':
+    model_dict = {
+        'type': model_name
+    }
+    model = eval('{0}'.format(model_name))
+
+    if hasattr(model, 'description'):
+        model_dict['description'] = description_text_name
+    elif hasattr(model, 'text'):
+        model_dict['text'] = description_text_name
+    elif hasattr(model, 'name'):
+        model_dict['name'] = description_text_name
+
+    if hasattr(model, 'display_position'):
         if display_position is None:
-            parameters.append(get_new_lowest_display_position())
+            model_dict['display_position'] = get_new_lowest_display_position()
         else:
-            parameters.append(display_position)
-    new_instance = eval(
-        "{0}(u'{1}')".format(model_name, "',u'".join(parameters))
-    )
-    return new_instance
+            model_dict['display_position'] = display_position
+
+    return model_dict
 
 
-def make_like(model_instance, description_text_name):
-    return make(str(model_instance.__class__), description_text_name)
+def make_like(model_dict, description_text_name):
+    return make(str(model_dict['type']), description_text_name)
 
 
-def add_to_db(model_instance):
-    DBSession.add(model_instance)
-    return model_instance
+def add_to_db(model_dict):
+    new_instance_parameters = []
+    if 'description' in model_dict:
+        new_instance_parameters.append(model_dict['description'])
+    elif 'name' in model_dict:
+        new_instance_parameters.append(model_dict['name'])
+    elif 'text' in model_dict:
+        new_instance_parameters.append(model_dict['text'])
+
+    if 'display_position' in model_dict:
+        new_instance_parameters.append(model_dict['display_position'])
+
+    new_instance = eval('{0}'.format(model_dict['type']))(*new_instance_parameters)
+    for key, value in model_dict.iteritems():
+        if key not in ('description', 'name', 'text', 'display_position'):
+            setattr(new_instance, key, value)
+
+    DBSession.add(new_instance)
+    flush()
+    model_dict['id'] = new_instance.id
+    return model_dict
 
 
-def delete_from_db(model_instance):
-    DBSession.delete(model_instance)
-    return model_instance
+def _instance_from_dict(model_dict):
+    return DBSession.query(eval('{0}'.format(model_dict['type']))).filter_by(id=model_dict['id']).one()
+
+def delete_from_db(model_dict):
+    DBSession.delete(_instance_from_dict(model_dict))
+    return model_dict
 
 
 def put(model_name, description_text_name, display_position=None):
-    new_instance = make(model_name, description_text_name, display_position)
-    return add_to_db(new_instance)
+    model_dict = make(model_name, description_text_name, display_position)
+    return add_to_db(model_dict)
 
 
-def put_like(model_instance, description_text_name):
-    return put(str(model_instance.__class__), description_text_name)
+def put_like(model_dict, description_text_name):
+    return put(str(model_dict['type']), description_text_name)
+
+
+def set_completed(model_dict):
+    model_dict['state'] = u'completed'
+    model_dict['completed_at'] = datetime.now()
+    if 'id' in model_dict:
+        instance = _instance_from_dict(model_dict)
+        if hasattr(instance, 'state'):
+            instance.state = u'completed'
+        if hasattr(instance, 'completed_at'):
+            instance.completed_at = datetime.now()
 
 
 def commit():

@@ -6,12 +6,13 @@ from sqlalchemy import Integer
 from sqlalchemy import DateTime
 
 import pydiditbackend.models
+from pydiditbackend.models.Model import Model
 Base = pydiditbackend.models.Base
 
 # Example package with a console entry point
 
 
-class Tag(Base):
+class Tag(Model, Base):
     '''Tag object'''
     __tablename__ = 'tags'
 

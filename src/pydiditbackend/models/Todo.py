@@ -8,12 +8,16 @@ from sqlalchemy import DateTime
 
 from sqlalchemy.orm import relation
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import backref
 
 import pydiditbackend.models
+
+from Model import Model
+
 Base = pydiditbackend.models.Base
 
 
-class Todo(Base):
+class Todo(Model, Base):
     '''Todo object'''
     __tablename__ = 'todos'
 
@@ -42,30 +46,36 @@ class Todo(Base):
 
     prereq_projects = relation(
         'Project',
-        backref='dependent_todos',
+        backref=backref('dependent_todos', lazy='joined', join_depth=1),
         secondary='todos_prereq_projects',
+        lazy='joined',
+        join_depth=1,
     )
 
     prereq_todos = relation(
         'Todo',
-        backref='dependent_todos',
+        backref=backref('dependent_todos', lazy='joined', join_depth=1),
         secondary='todos_prereq_todos',
         primaryjoin=
                 id == pydiditbackend.models.todos_prereq_todos.c.todo_id,
         secondaryjoin=
                 id == pydiditbackend.models.todos_prereq_todos.c.prereq_id,
+        lazy='joined',
+        join_depth=1,
     )
 
     notes = relation(
         'Note',
-        backref='todos',
+        backref=backref('todos', lazy='joined'),
         secondary='todos_notes',
+        lazy='joined',
     )
 
     tags = relation(
         'Tag',
-        backref='todos',
+        backref=backref('todos', lazy='joined'),
         secondary='todos_tags',
+        lazy='joined',
     )
 
     def __init__(self, description, display_position, state=u'active',
@@ -93,10 +103,6 @@ class Todo(Base):
         for component in components:
             assert component.isdigit()
         return value
-
-    def set_completed(self):
-        self.state = 'completed'
-        self.completed_at = datetime.now()
 
     def __str__(self):
         return '<Todo: {0} {1} {2}>'.format(self.id, self.description,

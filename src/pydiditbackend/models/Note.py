@@ -6,10 +6,11 @@ from sqlalchemy import Integer
 from sqlalchemy import DateTime
 
 import pydiditbackend.models
+from pydiditbackend.models.Model import Model
 Base = pydiditbackend.models.Base
 
 
-class Note(Base):
+class Note(Model, Base):
     '''Note object'''
     __tablename__ = 'notes'
 
