@@ -144,6 +144,11 @@ def add_to_db(model_dict):
 def _instance_from_dict(model_dict):
     return DBSession.query(eval('{0}'.format(model_dict['type']))).filter_by(id=model_dict['id']).one()
 
+
+def _has_attribute(model_name, attribute):
+    return hasattr(eval('{0}'.format(model_name)), attribute)
+
+
 def delete_from_db(model_dict):
     DBSession.delete(_instance_from_dict(model_dict))
     return model_dict
@@ -159,14 +164,36 @@ def put_like(model_dict, description_text_name):
 
 
 def set_completed(model_dict):
-    model_dict['state'] = u'completed'
-    model_dict['completed_at'] = datetime.now()
-    if 'id' in model_dict:
+    if _has_attribute(model_dict['type'], 'completed_at'):
+        model_dict['state'] = u'completed'
+        model_dict['completed_at'] = datetime.now()
+        if 'id' in model_dict:
+            instance = _instance_from_dict(model_dict)
+            if hasattr(instance, 'state'):
+                instance.state = u'completed'
+            if hasattr(instance, 'completed_at'):
+                instance.completed_at = datetime.now()
+        return model_dict
+    else:
+        return None
+
+
+def set_attribute(model_dict, attribute, value):
+    if attribute in model_dict:
+        model_dict[attribute] = value
         instance = _instance_from_dict(model_dict)
-        if hasattr(instance, 'state'):
-            instance.state = u'completed'
-        if hasattr(instance, 'completed_at'):
-            instance.completed_at = datetime.now()
+        if hasattr(instance, attribute):
+            setattr(instance, attribute, value)
+
+
+def link(parent_dict, attribute, child_dict):
+    if attribute in parent_dict:
+        parent_instance = _instance_from_dict(parent_dict)
+        child_instance = _instance_from_dict(child_dict)
+        getattr(parent_instance, attribute).append(child_instance)
+        parent_dict[attribute].append(child_dict)
+        return parent_dict
+    return None
 
 
 def commit():
