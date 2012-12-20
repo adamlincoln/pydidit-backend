@@ -3,7 +3,8 @@ class Model(object):
 
     def to_dict(self):
         to_return = self.__dict__
-        del to_return['_sa_instance_state']
+        if '_sa_instance_state' in to_return:
+            del to_return['_sa_instance_state']
         for attr, value in to_return.iteritems():
             if hasattr(value, 'to_dict'):
                 to_return[attr] = value.to_dict()
