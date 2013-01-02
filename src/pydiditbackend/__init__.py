@@ -194,11 +194,14 @@ def _set_attribute(model_instance, model_dict, attribute, value):
             setattr(model_instance, attribute, value)
 
 
-def link(parent_dict, attribute, child_dict):
+def link(parent_dict, attribute, child_dict, unlink=False):
     if attribute in parent_dict:
         parent_instance = _instance_from_dict(parent_dict)
         child_instance = _instance_from_dict(child_dict)
-        getattr(parent_instance, attribute).append(child_instance)
+        if not unlink:
+            getattr(parent_instance, attribute).append(child_instance)
+        else:
+            getattr(parent_instance, attribute).remove(child_instance)
         parent_dict[attribute].append(child_dict)
         return parent_dict
     return None

@@ -44,9 +44,9 @@ class Project(Model, Base):
         join_depth=1,
     )
 
-    child_projects = relation(
+    contains_projects = relation(
         'Project',
-        backref=backref('parent_projects', lazy='joined', join_depth=1),
+        backref=backref('contained_by_projects', lazy='joined', join_depth=1),
         secondary='projects_contain_projects',
         primaryjoin=
                 id == pydiditbackend.models.
@@ -58,9 +58,9 @@ class Project(Model, Base):
         join_depth=1,
     )
 
-    child_todos = relation(
+    contains_todos = relation(
         'Todo',
-        backref=backref('parent_projects', lazy='joined', join_depth=1),
+        backref=backref('contained_by_projects', lazy='joined', join_depth=1),
         secondary='projects_contain_todos',
         lazy='joined',
         join_depth=1,
