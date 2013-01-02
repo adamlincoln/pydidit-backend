@@ -27,7 +27,7 @@ class Project(Model, Base):
     due = Column(DateTime(), nullable=True)
     created_at = Column(DateTime(), nullable=False, default=datetime.now)
     completed_at = Column(DateTime(), nullable=True)
-    modified_at = Column(DateTime(), nullable=False, onupdate=datetime.now)
+    modified_at = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now)
     display_position = Column(Unicode(length=50), nullable=False)
 
     prereq_projects = relation(
@@ -82,16 +82,19 @@ class Project(Model, Base):
         join_depth=1,
     )
 
-    def __init__(self, description, state=u'active', due=None, show_from=None):
+    def __init__(self, description, display_position, state=u'active',
+                 due=None, show_from=None):
         '''Create a new Project instance
 
         :param description:
+        :param display_position:
 
         :param state: 'active' or 'completed', optional (defaults to 'active')
         :param due: Due date, optional
 
         '''
         self.description = description
+        self.display_position = display_position
         self.state = state
 
         self.due = due
