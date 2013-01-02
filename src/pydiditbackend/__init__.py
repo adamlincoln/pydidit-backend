@@ -36,14 +36,14 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
 
 
 def get(model_name, all=False, filter_by=None):
-    query = eval('DBSession.query({0})'.format(model_name))
+    query = DBSession.query(eval(model_name))
     if filter_by is not None:
         query = query.filter_by(**filter_by)
     else:
-        if eval("hasattr({0}, 'state')".format(model_name)) and not all:
+        if hasattr(eval(model_name), 'state') and not all:
             query = query.filter_by(state=u'active')
-    if eval("hasattr({0}, 'display_position')".format(model_name)):
-        query = query.order_by(eval('{0}.__table__.c.display_position'.format(model_name)))
+    if hasattr(eval(model_name), 'display_position'):
+        query = query.order_by(eval(model_name).__table__.c.display_position)
     return [obj.to_dict() for obj in query.all()]
 
 
@@ -75,9 +75,9 @@ def _display_position_compare(x, y):
     return final_resolution
 
 
-def get_new_lowest_display_position():
+def get_new_lowest_display_position(model_name):
     display_positions = \
-        [result[0] for result in DBSession.query(Todo.display_position).all()]
+        [result[0] for result in DBSession.query(eval(model_name).display_position).all()]
     display_positions.sort(_display_position_compare)
     lowest_display_position = None
     if len(display_positions) > 0:
@@ -96,7 +96,7 @@ def make(model_name, description_text_name, display_position=None):
     model_dict = {
         'type': model_name
     }
-    model = eval('{0}'.format(model_name))
+    model = eval(model_name)
 
     if hasattr(model, 'description'):
         model_dict['description'] = description_text_name
@@ -107,15 +107,15 @@ def make(model_name, description_text_name, display_position=None):
 
     if hasattr(model, 'display_position'):
         if display_position is None:
-            model_dict['display_position'] = get_new_lowest_display_position()
+            model_dict['display_position'] = get_new_lowest_display_position(model_name)
         else:
             model_dict['display_position'] = display_position
 
     return model_dict
 
 
-def make_like(model_dict, description_text_name):
-    return make(str(model_dict['type']), description_text_name)
+def make_like(model_dict, description_text_name, display_position=None):
+    return make(model_dict['type'], description_text_name, display_position)
 
 
 def add_to_db(model_dict):
@@ -130,7 +130,7 @@ def add_to_db(model_dict):
     if 'display_position' in model_dict:
         new_instance_parameters.append(model_dict['display_position'])
 
-    new_instance = eval('{0}'.format(model_dict['type']))(*new_instance_parameters)
+    new_instance = eval(model_dict['type'])(*new_instance_parameters)
     for key, value in model_dict.iteritems():
         if key not in ('description', 'name', 'text', 'display_position'):
             setattr(new_instance, key, value)
@@ -142,11 +142,11 @@ def add_to_db(model_dict):
 
 
 def _instance_from_dict(model_dict):
-    return DBSession.query(eval('{0}'.format(model_dict['type']))).filter_by(id=model_dict['id']).one()
+    return DBSession.query(eval(model_dict['type'])).filter_by(id=model_dict['id']).one()
 
 
 def _has_attribute(model_name, attribute):
-    return hasattr(eval('{0}'.format(model_name)), attribute)
+    return hasattr(eval(model_name), attribute)
 
 
 def delete_from_db(model_dict):
@@ -178,12 +178,20 @@ def set_completed(model_dict):
         return None
 
 
-def set_attribute(model_dict, attribute, value):
+def set_attributes(model_dict, new_values):
+    model_instance = None
+    if 'id' in model_dict:
+        model_instance = _instance_from_dict(model_dict)
+    for attribute, value in new_values.iteritems():
+        _set_attribute(model_instance, model_dict, attribute, value)
+    return model_dict
+
+
+def _set_attribute(model_instance, model_dict, attribute, value):
     if attribute in model_dict:
         model_dict[attribute] = value
-        instance = _instance_from_dict(model_dict)
-        if hasattr(instance, attribute):
-            setattr(instance, attribute, value)
+        if model_instance is not None and hasattr(model_instance, attribute):
+            setattr(model_instance, attribute, value)
 
 
 def link(parent_dict, attribute, child_dict):
