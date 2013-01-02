@@ -68,16 +68,18 @@ class Project(Model, Base):
 
     notes = relation(
         'Note',
-        backref=backref('projects', lazy='joined'),
+        backref=backref('projects', lazy='joined', join_depth=1),
         secondary='projects_notes',
         lazy='joined',
+        join_depth=1,
     )
 
     tags = relation(
         'Tag',
-        backref=backref('projects', lazy='joined'),
+        backref=backref('projects', lazy='joined', join_depth=1),
         secondary='projects_tags',
         lazy='joined',
+        join_depth=1,
     )
 
     def __init__(self, description, state=u'active', due=None, show_from=None):
