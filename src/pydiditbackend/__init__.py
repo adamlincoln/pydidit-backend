@@ -32,6 +32,7 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
 
     engine = engine_from_config(settings, 'sqlalchemy.')
     Base.metadata.bind = engine
+    Base.metadata.create_all()
     DBSession.configure(bind=engine)
 
 
