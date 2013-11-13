@@ -207,6 +207,8 @@ def link(parent_dict, attribute, child_dict, unlink=False):
         return parent_dict
     return None
 
+def unlink(parent_dict, attribute, child_dict):
+    return link(parent_dict, attribute, child_dict, True)
 
 def commit():
     transaction.commit()
