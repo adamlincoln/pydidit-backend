@@ -7,6 +7,8 @@ from sqlalchemy import engine_from_config
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
+from sqlalchemy.inspection import inspect
+
 from zope.sqlalchemy import ZopeTransactionExtension
 import transaction
 
@@ -187,28 +189,68 @@ def set_attributes(model_dict, new_values):
         _set_attribute(model_instance, model_dict, attribute, value)
     return model_dict
 
-
 def _set_attribute(model_instance, model_dict, attribute, value):
     if attribute in model_dict:
         model_dict[attribute] = value
         if model_instance is not None and hasattr(model_instance, attribute):
             setattr(model_instance, attribute, value)
 
+def relationship_name(parent_dict, child_dict, *args, **kwargs):
+    parent_type = parent_dict['type']
+    dict_type = dict_dict['type']
+    if 'prereq' in args or ('prereq' in kwargs and kwargs['prereq']): # special cases
+        if parent_type == 'Project':
+            if child_type == 'Project':
+                return 'prereq_projects'
+            elif child_type == 'Todo':
+                return 'prereq_todos'
+        elif parent_type == 'Todo':
+            if child_type == 'Project':
+                return 'prereq_projects'
+            elif child_type == 'Todo':
+                return 'prereq_todos'
+        return attribute
+    elif 'contain' in args or ('contain' in kwargs and kwargs['contain']):
+        if parent_type == 'Project':
+            if child_type == 'Project':
+                return 'contains_projects'
+            elif child_type == 'Todo':
+                return 'contains_todos'
 
-def link(parent_dict, attribute, child_dict, unlink=False):
-    if attribute in parent_dict:
-        parent_instance = _instance_from_dict(parent_dict)
-        child_instance = _instance_from_dict(child_dict)
-        if not unlink:
-            getattr(parent_instance, attribute).append(child_instance)
-        else:
-            getattr(parent_instance, attribute).remove(child_instance)
-        parent_dict[attribute].append(child_dict)
-        return parent_dict
-    return None
+    # Non-special cases
+    parent_instance = _instance_from_dict(parent_dict)
+    child_instance = _instance_from_dict(child_dict)
+    #parent_type = inspect(parent_instance.__class__).mapper.class_.__name__
+    #child_type = inspect(child_instance.__class__).mapper.class_.__name__
+    potential_relationships = []
+    for relationship_name in inspect(parent_instance.__class__).mapper.relationships.keys():
+        if child_type == inspect(parent_instance.__class__).mapper.relationships[relationship_name].mapper.class_.__name__:
+            # Might this trigger on relationships we don't want?
+            potential_relationships.append({relationship_name: (parent_type, child_type)})
 
-def unlink(parent_dict, attribute, child_dict):
-    return link(parent_dict, attribute, child_dict, True)
+    if len(potential_relationships) != 1:
+        raise Exception('Something is wrong.')
+    else:
+        return potential_relationships[0].keys()[0]
+
+def link(parent_dict, child_dict, *args, **kwargs):
+    #parent_type = parent_dict['type']
+    #child_type = child_dict['type']
+    parent_instance = _instance_from_dict(parent_dict)
+    child_instance = _instance_from_dict(child_dict)
+    attribute = relationship_name(parent_instance, child_instance, *args, **kwargs)
+    if attribute is None:
+        raise Exception('Cannot find the attribute to link the child to the parent.')
+
+    if 'unlink' in kwargs and kwargs['unlink']:
+        getattr(parent_instance, attribute).remove(child_instance)
+    else:
+        getattr(parent_instance, attribute).append(child_instance)
+    parent_dict[attribute].append(child_dict)
+    return parent_dict
+
+def unlink(parent_dict, child_dict):
+    return link(parent_dict, child_dict, True)
 
 def commit():
     transaction.commit()
