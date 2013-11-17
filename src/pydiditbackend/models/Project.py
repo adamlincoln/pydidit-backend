@@ -44,6 +44,14 @@ class Project(Model, Base):
         join_depth=1,
     )
 
+    prereq_todos = relation(
+        'Todo',
+        backref=backref('dependent_projects', lazy='joined', join_depth=1),
+        secondary='projects_prereq_todos',
+        lazy='joined',
+        join_depth=1,
+    )
+
     contains_projects = relation(
         'Project',
         backref=backref('contained_by_projects', lazy='joined', join_depth=1),
