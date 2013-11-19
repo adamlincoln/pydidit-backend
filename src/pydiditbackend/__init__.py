@@ -34,7 +34,6 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
 
     engine = engine_from_config(settings, 'sqlalchemy.')
     Base.metadata.bind = engine
-    Base.metadata.create_all()
     DBSession.configure(bind=engine)
 
 
@@ -195,9 +194,7 @@ def _set_attribute(model_instance, model_dict, attribute, value):
         if model_instance is not None and hasattr(model_instance, attribute):
             setattr(model_instance, attribute, value)
 
-def relationship_name(parent_dict, child_dict, *args, **kwargs):
-    parent_type = parent_dict['type']
-    dict_type = dict_dict['type']
+def relationship_name(parent_type, child_type, *args, **kwargs):
     if 'prereq' in args or ('prereq' in kwargs and kwargs['prereq']): # special cases
         if parent_type == 'Project':
             if child_type == 'Project':
@@ -216,15 +213,19 @@ def relationship_name(parent_dict, child_dict, *args, **kwargs):
                 return 'contains_projects'
             elif child_type == 'Todo':
                 return 'contains_todos'
+    elif 'contained_by' in args or ('contained_by' in kwargs and kwargs['contained_by']):
+        if parent_type == 'Project':
+            if child_type == 'Project':
+                return 'contained_by_projects'
+        if parent_type == 'Todo':
+            if child_type == 'Project':
+                return 'contained_by_projects'
 
     # Non-special cases
-    parent_instance = _instance_from_dict(parent_dict)
-    child_instance = _instance_from_dict(child_dict)
-    #parent_type = inspect(parent_instance.__class__).mapper.class_.__name__
-    #child_type = inspect(child_instance.__class__).mapper.class_.__name__
     potential_relationships = []
-    for relationship_name in inspect(parent_instance.__class__).mapper.relationships.keys():
-        if child_type == inspect(parent_instance.__class__).mapper.relationships[relationship_name].mapper.class_.__name__:
+    print inspect(eval(parent_type)).mapper.relationships.keys()
+    for relationship_name in inspect(eval(parent_type)).mapper.relationships.keys():
+        if child_type == inspect(eval(parent_type)).mapper.relationships[relationship_name].mapper.class_.__name__:
             # Might this trigger on relationships we don't want?
             potential_relationships.append({relationship_name: (parent_type, child_type)})
 
@@ -234,14 +235,12 @@ def relationship_name(parent_dict, child_dict, *args, **kwargs):
         return potential_relationships[0].keys()[0]
 
 def link(parent_dict, child_dict, *args, **kwargs):
-    #parent_type = parent_dict['type']
-    #child_type = child_dict['type']
-    parent_instance = _instance_from_dict(parent_dict)
-    child_instance = _instance_from_dict(child_dict)
-    attribute = relationship_name(parent_instance, child_instance, *args, **kwargs)
+    attribute = relationship_name(parent_dict['type'], child_dict['type'], *args, **kwargs)
     if attribute is None:
         raise Exception('Cannot find the attribute to link the child to the parent.')
 
+    parent_instance = _instance_from_dict(parent_dict)
+    child_instance = _instance_from_dict(child_dict)
     if 'unlink' in kwargs and kwargs['unlink']:
         getattr(parent_instance, attribute).remove(child_instance)
     else:
@@ -249,8 +248,9 @@ def link(parent_dict, child_dict, *args, **kwargs):
     parent_dict[attribute].append(child_dict)
     return parent_dict
 
-def unlink(parent_dict, child_dict):
-    return link(parent_dict, child_dict, True)
+def unlink(parent_dict, child_dict, *args, **kwargs):
+    kwargs['unlink'] = True
+    return link(parent_dict, child_dict, args, kwargs)
 
 def commit():
     transaction.commit()
