@@ -12,6 +12,14 @@ Authors
 Adam J. Lincoln <adamjlincoln@gmail.com>
 
 
+Other stuff
+-----------
+
+To set up database initially, do
+
+alembic upgrade head
+
+
 Credits
 -------
 
