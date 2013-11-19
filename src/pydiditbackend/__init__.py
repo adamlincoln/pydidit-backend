@@ -223,7 +223,6 @@ def relationship_name(parent_type, child_type, *args, **kwargs):
 
     # Non-special cases
     potential_relationships = []
-    print inspect(eval(parent_type)).mapper.relationships.keys()
     for relationship_name in inspect(eval(parent_type)).mapper.relationships.keys():
         if child_type == inspect(eval(parent_type)).mapper.relationships[relationship_name].mapper.class_.__name__:
             # Might this trigger on relationships we don't want?
