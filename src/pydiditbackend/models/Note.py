@@ -30,5 +30,5 @@ class Note(Model, Base):
     def __str__(self):
         return '<Note: {0} {1}>'.format(self.id, self.text)
 
-    def primary_descriptor(self):
+    def get_primary_descriptor(self):
         return 'text'

@@ -110,5 +110,5 @@ class Project(Model, Base):
     def __str__(self):
         return '<Project: {0} {1}>'.format(self.id, self.description)
 
-    def primary_descriptor(self):
+    def get_primary_descriptor(self):
         return 'description'

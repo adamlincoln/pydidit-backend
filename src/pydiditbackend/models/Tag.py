@@ -33,5 +33,5 @@ class Tag(Model, Base):
     def __str__(self):
         return '<Tag: {0} {1}>'.format(self.id, self.name)
 
-    def primary_descriptor(self):
+    def get_primary_descriptor(self):
         return 'name'

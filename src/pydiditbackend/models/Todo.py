@@ -110,5 +110,5 @@ class Todo(Model, Base):
         return '<Todo: {0} {1} {2}>'.format(self.id, self.description,
                                             self.state)
 
-    def primary_descriptor(self):
+    def get_primary_descriptor(self):
         return 'description'
