@@ -207,6 +207,18 @@ def relationship_name(parent_type, child_type, *args, **kwargs):
             elif child_type == 'Todo':
                 return 'prereq_todos'
         return attribute
+    if 'dependent' in args or ('dependent' in kwargs and kwargs['dependent']): # special cases
+        if parent_type == 'Project':
+            if child_type == 'Project':
+                return 'dependent_projects'
+            elif child_type == 'Todo':
+                return 'dependent_todos'
+        elif parent_type == 'Todo':
+            if child_type == 'Project':
+                return 'dependent_projects'
+            elif child_type == 'Todo':
+                return 'dependent_todos'
+        return attribute
     elif 'contain' in args or ('contain' in kwargs and kwargs['contain']):
         if parent_type == 'Project':
             if child_type == 'Project':
