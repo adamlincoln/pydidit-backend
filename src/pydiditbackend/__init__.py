@@ -37,6 +37,8 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
     DBSession.configure(bind=engine)
 
 
+# Start stuff for reading
+
 def get(model_name, all=False, filter_by=None):
     query = DBSession.query(eval(model_name))
     if filter_by is not None:
@@ -52,6 +54,10 @@ def get(model_name, all=False, filter_by=None):
 def get_like(model_dict, all=False, filter_by=None):
     return get(str(model_dict['type']), all, filter_by)
 
+
+# End stuff for reading
+
+# Start stuff for creating
 
 def _display_position_compare(x, y):
     x_components = x.split(u'.')
@@ -143,19 +149,6 @@ def add_to_db(model_dict):
     return model_dict
 
 
-def _instance_from_dict(model_dict):
-    return DBSession.query(eval(model_dict['type'])).filter_by(id=model_dict['id']).one()
-
-
-def _has_attribute(model_name, attribute):
-    return hasattr(eval(model_name), attribute)
-
-
-def delete_from_db(model_dict):
-    DBSession.delete(_instance_from_dict(model_dict))
-    return model_dict
-
-
 def put(model_name, description_text_name, display_position=None):
     model_dict = make(model_name, description_text_name, display_position)
     return add_to_db(model_dict)
@@ -164,6 +157,32 @@ def put(model_name, description_text_name, display_position=None):
 def put_like(model_dict, description_text_name):
     return put(str(model_dict['type']), description_text_name)
 
+
+# End stuff for creating
+
+# Start utilities
+
+def _instance_from_dict(model_dict):
+    return DBSession.query(eval(model_dict['type'])).filter_by(id=model_dict['id']).one()
+
+def _has_attribute(model_name, attribute):
+    return hasattr(eval(model_name), attribute)
+
+def commit():
+    transaction.commit()
+
+def flush():
+    DBSession.flush() 
+
+# End utilities
+
+# Start stuff for deleting
+
+def delete_from_db(model_dict):
+    DBSession.delete(_instance_from_dict(model_dict))
+    return model_dict
+
+# End stuff for deleting
 
 def set_completed(model_dict):
     if _has_attribute(model_dict['type'], 'completed_at'):
@@ -179,6 +198,7 @@ def set_completed(model_dict):
     else:
         return None
 
+# Start stuff for updating
 
 def set_attributes(model_dict, new_values):
     model_instance = None
@@ -193,6 +213,10 @@ def _set_attribute(model_instance, model_dict, attribute, value):
         model_dict[attribute] = value
         if model_instance is not None and hasattr(model_instance, attribute):
             setattr(model_instance, attribute, value)
+
+# End stuff for updating
+
+# Start stuff for relationships
 
 def relationship_name(parent_type, child_type, *args, **kwargs):
     if 'prereq' in args or ('prereq' in kwargs and kwargs['prereq']): # special cases
@@ -263,9 +287,4 @@ def unlink(parent_dict, child_dict, *args, **kwargs):
     kwargs['unlink'] = True
     return link(parent_dict, child_dict, args, kwargs)
 
-def commit():
-    transaction.commit()
-
-
-def flush():
-    DBSession.flush()
+# Start stuff for relationships
