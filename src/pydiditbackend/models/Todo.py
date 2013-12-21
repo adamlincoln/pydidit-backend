@@ -107,8 +107,11 @@ class Todo(Model, Base):
         return value
 
     def __str__(self):
-        return '<Todo: {0} {1} {2}>'.format(self.id, self.description,
-                                            self.state)
+        return '<Todo: {0} {1} {2} {3}>'.format(self.id, self.description,
+                                            self.state, self.display_position)
+
+    def __repr__(self):
+        return str(self)
 
     def get_primary_descriptor(self):
         return 'description'

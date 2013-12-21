@@ -46,9 +46,11 @@ def get(model_name, all=False, filter_by=None):
     else:
         if hasattr(eval(model_name), 'state') and not all:
             query = query.filter_by(state=u'active')
+    results = query.all()
     if hasattr(eval(model_name), 'display_position'):
-        query = query.order_by(eval(model_name).__table__.c.display_position)
-    return [obj.to_dict() for obj in query.all()]
+        # Invert the comparison result so 'float' and 'sink' make sense
+        results.sort(cmp=lambda x, y: _display_position_compare(x, y) * -1)
+    return [obj.to_dict() for obj in results]
 
 
 def get_like(model_dict, all=False, filter_by=None):
@@ -60,6 +62,9 @@ def get_like(model_dict, all=False, filter_by=None):
 # Start stuff for creating
 
 def _display_position_compare(x, y):
+    if isinstance(x, Base) and isinstance(y, Base):
+        x = x.display_position
+        y = y.display_position
     x_components = x.split(u'.')
     y_components = y.split(u'.')
     common_depth = 0
