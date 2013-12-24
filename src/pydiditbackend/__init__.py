@@ -21,6 +21,8 @@ from models import Base
 
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 
+import logging
+log = logging.getLogger(__name__)
 
 def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
                               os.path.expanduser('~/.pydidit-backendrc')),
@@ -290,6 +292,6 @@ def link(parent_dict, child_dict, *args, **kwargs):
 
 def unlink(parent_dict, child_dict, *args, **kwargs):
     kwargs['unlink'] = True
-    return link(parent_dict, child_dict, args, kwargs)
+    return link(parent_dict, child_dict, *args, **kwargs)
 
 # Start stuff for relationships
