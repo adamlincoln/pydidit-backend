@@ -230,6 +230,8 @@ def swap_display_positions(model_dict_one, model_dict_two):
         set_attributes(model_dict_one, {'display_position': model_dict_two['display_position']})
         set_attributes(model_dict_two, {'display_position': temp})
 
+        return [model_dict_one, model_dict_two]
+
 # End stuff for updating
 
 # Start stuff for relationships
