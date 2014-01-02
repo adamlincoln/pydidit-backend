@@ -191,6 +191,8 @@ def delete_from_db(model_dict):
 
 # End stuff for deleting
 
+# Start stuff for updating
+
 def set_completed(model_dict):
     if _has_attribute(model_dict['type'], 'completed_at'):
         model_dict['state'] = u'completed'
@@ -205,8 +207,6 @@ def set_completed(model_dict):
     else:
         return None
 
-# Start stuff for updating
-
 def set_attributes(model_dict, new_values):
     model_instance = None
     if 'id' in model_dict:
@@ -220,6 +220,15 @@ def _set_attribute(model_instance, model_dict, attribute, value):
         model_dict[attribute] = value
         if model_instance is not None and hasattr(model_instance, attribute):
             setattr(model_instance, attribute, value)
+
+def swap_display_positions(model_dict_one, model_dict_two):
+    if 'display_position' in model_dict_one and \
+       'display_position' in model_dict_two and \
+       model_dict_one['type'] == model_dict_two['type']:
+
+        temp = model_dict_one['display_position']
+        set_attributes(model_dict_one, {'display_position': model_dict_two['display_position']})
+        set_attributes(model_dict_two, {'display_position': temp})
 
 # End stuff for updating
 
