@@ -51,7 +51,13 @@ def get(model_name, all=False, filter_by=None):
     results = query.all()
     if hasattr(eval(model_name), 'display_position'):
         # Invert the comparison result so 'float' and 'sink' make sense
-        results.sort(cmp=lambda x, y: _display_position_compare(x, y) * -1)
+        results.sort(cmp=lambda x, y: -_display_position_compare(x, y))
+    for result in results:
+        for relationship in inspect(result.__class__).mapper.relationships.keys():
+            if hasattr(result, relationship) and \
+               len(getattr(result, relationship)) > 0 and \
+               hasattr(getattr(result, relationship)[0], 'display_position'):
+                getattr(result, relationship).sort(cmp=lambda x, y: -_display_position_compare(x, y))
     return [obj.to_dict() for obj in results]
 
 
