@@ -15,8 +15,6 @@ import sqlalchemy as sa
 import sqlalchemy.sql as sasql
 import sqlalchemy.sql.expression as sasqlexpr
 
-from IPython.terminal.embed import InteractiveShellEmbed
-from IPython.terminal.embed import embed
 from copy import copy
 
 # Algorithm at the time of versioning
