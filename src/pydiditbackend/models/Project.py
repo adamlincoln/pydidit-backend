@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column
 from sqlalchemy import Unicode
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import Enum
 from sqlalchemy import DateTime
 
@@ -28,7 +29,7 @@ class Project(Model, Base):
     created_at = Column(DateTime(), nullable=False, default=datetime.now)
     completed_at = Column(DateTime(), nullable=True)
     modified_at = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now)
-    display_position = Column(Unicode(length=50), nullable=False)
+    display_position = Column(BigInteger(), nullable=False)
 
     prereq_projects = relation(
         'Project',

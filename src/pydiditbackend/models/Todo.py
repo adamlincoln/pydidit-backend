@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column
 from sqlalchemy import Unicode
 from sqlalchemy import Integer
+from sqlalchemy import BigInteger
 from sqlalchemy import Enum
 from sqlalchemy import DateTime
 
@@ -42,7 +43,7 @@ class Todo(Model, Base):
         onupdate=datetime.now
     )
     show_from = Column(DateTime(), nullable=True)
-    display_position = Column(Unicode(length=50), nullable=False)
+    display_position = Column(BigInteger(), nullable=False)
 
     prereq_projects = relation(
         'Project',
@@ -98,17 +99,17 @@ class Todo(Model, Base):
         self.due = due
         self.show_from = show_from
 
-    @validates('display_position')
-    def validate_display_position(self, field_name, value):
-        assert len(value) <= 50
-        components = value.split('.')
-        for component in components:
-            assert component.isdigit()
-        return value
+    #@validates('display_position')
+    #def validate_display_position(self, field_name, value):
+        #assert len(value) <= 50
+        #components = value.split('.')
+        #for component in components:
+            #assert component.isdigit()
+        #return value
 
     def __str__(self):
         return '<Todo: {0} {1} {2} {3}>'.format(self.id, self.description,
-                                            self.state, self.display_position)
+                                            self.state, str(self.display_position))
 
     def __repr__(self):
         return str(self)
