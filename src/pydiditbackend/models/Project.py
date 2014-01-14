@@ -33,7 +33,7 @@ class Project(Model, Base):
 
     prereq_projects = relation(
         'Project',
-        backref=backref('dependent_projects', lazy='joined', join_depth=1),
+        backref=backref('dependent_projects', lazy='joined', join_depth=1, order_by='Project.display_position'),
         secondary='projects_prereq_projects',
         primaryjoin=
                 id == pydiditbackend.models.
@@ -43,19 +43,21 @@ class Project(Model, Base):
                 projects_prereq_projects.c.prereq_id,
         lazy='joined',
         join_depth=1,
+        order_by='Project.display_position',
     )
 
     prereq_todos = relation(
         'Todo',
-        backref=backref('dependent_projects', lazy='joined', join_depth=1),
+        backref=backref('dependent_projects', lazy='joined', join_depth=1, order_by='Todo.display_position'),
         secondary='projects_prereq_todos',
         lazy='joined',
         join_depth=1,
+        order_by='Todo.display_position',
     )
 
     contains_projects = relation(
         'Project',
-        backref=backref('contained_by_projects', lazy='joined', join_depth=1),
+        backref=backref('contained_by_projects', lazy='joined', join_depth=1, order_by='Project.display_position'),
         secondary='projects_contain_projects',
         primaryjoin=
                 id == pydiditbackend.models.
@@ -65,14 +67,16 @@ class Project(Model, Base):
                 projects_contain_projects.c.child_id,
         lazy='joined',
         join_depth=1,
+        order_by='Project.display_position',
     )
 
     contains_todos = relation(
         'Todo',
-        backref=backref('contained_by_projects', lazy='joined', join_depth=1),
+        backref=backref('contained_by_projects', lazy='joined', join_depth=1, order_by='Todo.display_position'),
         secondary='projects_contain_todos',
         lazy='joined',
         join_depth=1,
+        order_by='Todo.display_position',
     )
 
     notes = relation(

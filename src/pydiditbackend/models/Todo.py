@@ -47,15 +47,16 @@ class Todo(Model, Base):
 
     prereq_projects = relation(
         'Project',
-        backref=backref('dependent_todos', lazy='joined', join_depth=1),
+        backref=backref('dependent_todos', lazy='joined', join_depth=1, order_by='Project.display_position'),
         secondary='todos_prereq_projects',
         lazy='joined',
         join_depth=1,
+        order_by='Project.display_position',
     )
 
     prereq_todos = relation(
         'Todo',
-        backref=backref('dependent_todos', lazy='joined', join_depth=1),
+        backref=backref('dependent_todos', lazy='joined', join_depth=1, order_by='Todo.display_position'),
         secondary='todos_prereq_todos',
         primaryjoin=
                 id == pydiditbackend.models.todos_prereq_todos.c.todo_id,
@@ -63,6 +64,7 @@ class Todo(Model, Base):
                 id == pydiditbackend.models.todos_prereq_todos.c.prereq_id,
         lazy='joined',
         join_depth=1,
+        order_by='Todo.display_position',
     )
 
     notes = relation(

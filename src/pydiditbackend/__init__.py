@@ -48,16 +48,9 @@ def get(model_name, all=False, filter_by=None):
     else:
         if hasattr(eval(model_name), 'state') and not all:
             query = query.filter_by(state=u'active')
-    results = query.all()
     if hasattr(eval(model_name), 'display_position'):
-        # Invert the comparison result so 'float' and 'sink' make sense
-        results.sort(cmp=lambda x, y: -_display_position_compare(x, y))
-    for result in results:
-        for relationship in inspect(result.__class__).mapper.relationships.keys():
-            if hasattr(result, relationship) and \
-               len(getattr(result, relationship)) > 0 and \
-               hasattr(getattr(result, relationship)[0], 'display_position'):
-                getattr(result, relationship).sort(cmp=lambda x, y: -_display_position_compare(x, y))
+        query = query.order_by(eval(model_name).display_position)
+    results = query.all()
     return [obj.to_dict() for obj in results]
 
 
@@ -69,48 +62,10 @@ def get_like(model_dict, all=False, filter_by=None):
 
 # Start stuff for creating
 
-def _display_position_compare(x, y):
-    if isinstance(x, Base) and isinstance(y, Base):
-        x = x.display_position
-        y = y.display_position
-    x_components = x.split(u'.')
-    y_components = y.split(u'.')
-    common_depth = 0
-    final_resolution = None
-    if len(x_components) > len(y_components):
-        common_depth = len(x_components)
-        final_resolution = 1  # See comment below
-    elif len(x_components) < len(y_components):
-        common_depth = len(y_components)
-        final_resolution = -1  # See comment below
-    else:
-        common_depth = len(y_components)  # Could be either
-        final_resolution = 0  # See comment below
-    for i in xrange(common_depth):
-        if int(x_components[i]) > int(y_components[i]):
-            return -1  # x is bigger
-        elif int(x_components[i]) < int(y_components[i]):
-            return 1  # y is bigger
-    # If i'm here, then all the common depth components are the same.
-    # So we assume the longer one is bigger.
-    return final_resolution
-
-
 def get_new_lowest_display_position(model_name):
     display_positions = \
-        [result[0] for result in DBSession.query(eval(model_name).display_position).all()]
-    display_positions.sort(_display_position_compare)
-    lowest_display_position = None
-    if len(display_positions) > 0:
-        lowest_display_position = display_positions[0]
-    else:
-        lowest_display_position = u'0.0.0.0'
-    position_components = lowest_display_position.split(u'.')
-    new_position_components = [unicode(int(position_components[0]) + 1)]
-    new_position_components.extend(
-        [u'0' for component in position_components[1:]]
-    )
-    return u'.'.join(new_position_components)
+        [result[0] for result in DBSession.query(eval(model_name).display_position).order_by(eval(model_name).display_position).all()]
+    return display_positions[-1] + 1
 
 
 def make(model_name, description_text_name, display_position=None):
