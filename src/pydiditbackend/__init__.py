@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 
 from sqlalchemy import engine_from_config
+from sqlalchemy import and_
+from sqlalchemy import or_
 
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
@@ -266,4 +268,119 @@ def unlink(parent_dict, child_dict, *args, **kwargs):
     kwargs['unlink'] = True
     return link(parent_dict, child_dict, *args, **kwargs)
 
-# Start stuff for relationships
+# End stuff for relationships
+
+# Start stuff for moving
+
+def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=False):
+    if isinstance(to_move, int) and model_name is not None:
+        to_move = _instance_from_dict({'id': to_move, 'type': model_name})
+    else:
+        to_move = _instance_from_dict(to_move)
+
+    model_class = to_move.__class__
+
+    final_sink = False
+    # Handle all_the_way
+    if all_the_way:
+        if direction == 'float':
+            fake_model_dict = {
+                'id': DBSession.query(
+                    model_class.id,
+                    model_class.display_position
+                ) \
+                .order_by(model_class.display_position) \
+                .filter_by(state=u'active').all()[0][0],
+                'type': model_class.__name__,
+            }
+            anchor = _instance_from_dict(fake_model_dict)
+        elif direction == 'sink':
+            fake_model_dict = {
+                'id': DBSession.query(
+                    model_class.id,
+                    model_class.display_position
+                ) \
+                .order_by(model_class.display_position) \
+                .filter_by(state=u'active').all()[-1][0],
+                'type': model_class.__name__,
+            }
+            anchor = _instance_from_dict(fake_model_dict)
+            final_sink = True
+        else:
+            raise Exception('move() with all_the_way as True must have direction of "float" or "sink".')
+    else:
+        if anchor is not None:
+            if isinstance(anchor, int) and model_name is not None:
+                anchor = _instance_from_dict({'id': anchor, 'type': model_name})
+            else:
+                anchor = _instance_from_dict(anchor)
+            if model_class != anchor.__class__:
+                raise Exception('move() with an anchor must receive model dictionaries with types that match.')
+
+    if not hasattr(model_class, 'display_position'):
+        raise Exception('move() must be called on a model with a display_position.')
+
+    results = None
+    if anchor is not None:
+        and_clause = None
+        if to_move.display_position > anchor.display_position: # float
+            direction = 'float'
+            and_clause = and_(
+                model_class.display_position <= to_move.display_position,
+                model_class.display_position >= anchor.display_position,
+            )
+        elif to_move.display_position < anchor.display_position: # sink
+            direction = 'sink'
+            and_clause = and_(
+                model_class.display_position >= to_move.display_position,
+                model_class.display_position <= anchor.display_position,
+            )
+        query = DBSession.query(model_class).filter(and_clause)
+        query = query.filter_by(state=u'active').order_by(model_class.display_position)
+        results = query.all()
+
+    elif direction == 'float' or direction == 'sink':
+        display_positions = [result[0] for result in DBSession.query(model_class.display_position).order_by(model_class.display_position).filter_by(state=u'active').all()]
+        idx = display_positions.index(to_move.display_position)
+        or_clause = None
+        if direction == 'float':
+            or_clause = or_(
+                model_class.display_position == to_move.display_position,
+                model_class.display_position == display_positions[idx - 1],
+            )
+        if direction == 'sink':
+            if idx < len(display_positions) - 2: # If it's not the last or next to last
+                or_clause = or_(
+                    model_class.display_position == to_move.display_position,
+                    model_class.display_position == display_positions[idx + 1],
+                    model_class.display_position == display_positions[idx + 2], # Need this extra one because the logic below gets us *above* the last element in results
+                )
+            elif idx == len(display_positions) - 2:
+                or_clause = or_(
+                    model_class.display_position == to_move.display_position,
+                    model_class.display_position == display_positions[idx + 1],
+                )
+                final_sink = True
+        query = DBSession.query(model_class).filter(or_clause).order_by(model_class.display_position)
+        results = query.all()
+
+    else:
+        raise Exception('move() called without an anchor must be provided "float" or "sink" as direction.')
+
+    if direction == 'float': # to_move is at the heavy end of display_position. So all the others sink, and to_move goes at the lightest end.
+        moving_to = results[0].display_position
+        for i in xrange(len(results) - 1):
+            results[i].display_position = results[i + 1].display_position
+        results[-1].display_position = moving_to
+    elif direction == 'sink': # to_move is at the light end of display_position. So all the others except the last one float, and to_move goes at one lighter than the heaviest end.
+        if len(results) > 2:
+            moving_to = results[-2].display_position
+            for i in xrange(len(results) - 2, 0, -1):
+                results[i].display_position = results[i - 1].display_position
+            results[0].display_position = moving_to
+        if final_sink:
+            temp = results[0].display_position
+            results[0].display_position = results[-1].display_position
+            results[-1].display_position = temp
+    else:
+        raise Exception('move() must be called with direction of "float", "sink", or None.')
