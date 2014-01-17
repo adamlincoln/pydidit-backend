@@ -71,25 +71,36 @@ def get_new_lowest_display_position(model_name):
 
 
 def make(model_name, description_text_name, display_position=None):
-    model_dict = {
-        'type': model_name
-    }
     model = eval(model_name)
 
-    if hasattr(model, 'description'):
-        model_dict['description'] = description_text_name
-    elif hasattr(model, 'text'):
-        model_dict['text'] = description_text_name
-    elif hasattr(model, 'name'):
-        model_dict['name'] = description_text_name
+    return_single = False
+    model_dicts = []
+    if isinstance(description_text_name, basestring):
+        description_text_name = [description_text_name]
+        return_single = True
+    for info in description_text_name:
+        model_dict = {
+            'type': model_name
+        }
+        if hasattr(model, 'description'):
+            model_dict['description'] = info 
+        elif hasattr(model, 'text'):
+            model_dict['text'] = info
+        elif hasattr(model, 'name'):
+            model_dict['name'] = info
 
-    if hasattr(model, 'display_position'):
-        if display_position is None:
-            model_dict['display_position'] = get_new_lowest_display_position(model_name)
+        if hasattr(model, 'display_position'):
+            if display_position is None:
+                model_dict['display_position'] = get_new_lowest_display_position(model_name)
+            else:
+                model_dict['display_position'] = display_position
+
+        if return_single:
+            return model_dict
         else:
-            model_dict['display_position'] = display_position
+            model_dicts.append(model_dict)
 
-    return model_dict
+    return model_dicts
 
 
 def make_like(model_dict, description_text_name, display_position=None):
@@ -97,26 +108,36 @@ def make_like(model_dict, description_text_name, display_position=None):
 
 
 def add_to_db(model_dict):
-    new_instance_parameters = []
-    if 'description' in model_dict:
-        new_instance_parameters.append(model_dict['description'])
-    elif 'name' in model_dict:
-        new_instance_parameters.append(model_dict['name'])
-    elif 'text' in model_dict:
-        new_instance_parameters.append(model_dict['text'])
+    return_single = False
+    new_instances = []
+    if isinstance(model_dict, dict):
+        model_dict = [model_dict]
+        return_single = True
+    for single_model_dict in model_dict:
+        new_instance_parameters = []
+        if 'description' in single_model_dict:
+            new_instance_parameters.append(single_model_dict['description'])
+        elif 'name' in single_model_dict:
+            new_instance_parameters.append(single_model_dict['name'])
+        elif 'text' in single_model_dict:
+            new_instance_parameters.append(single_model_dict['text'])
 
-    if 'display_position' in model_dict:
-        new_instance_parameters.append(model_dict['display_position'])
+        if 'display_position' in single_model_dict:
+            new_instance_parameters.append(single_model_dict['display_position'])
 
-    new_instance = eval(model_dict['type'])(*new_instance_parameters)
-    for key, value in model_dict.iteritems():
-        if key not in ('description', 'name', 'text', 'display_position'):
-            setattr(new_instance, key, value)
+        new_instance = eval(single_model_dict['type'])(*new_instance_parameters)
+        for key, value in single_model_dict.iteritems():
+            if key not in ('description', 'name', 'text', 'display_position'):
+                setattr(new_instance, key, value)
 
-    DBSession.add(new_instance)
+        new_instances.append(new_instance)
+
+    DBSession.add_all(new_instances)
     flush()
-    model_dict['id'] = new_instance.id
-    return model_dict
+    for i in xrange(len(new_instances)):
+        model_dict[i]['id'] = new_instances[i].id
+
+    return model_dict[0] if return_single else model_dict
 
 
 def put(model_name, description_text_name, display_position=None):
