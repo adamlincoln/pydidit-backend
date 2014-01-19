@@ -84,6 +84,7 @@ def upgrade():
     projects.sort(cmp=lambda x, y: -display_position_compare(x, y))
 
     if current_context.opts['driver'] == 'pysqlite':
+        #from IPython.terminal.embed import InteractiveShellEmbed
         #ipshell = InteractiveShellEmbed()
         #ipshell.mainloop(global_ns={}, local_ns={'hi': todos_table})
 
