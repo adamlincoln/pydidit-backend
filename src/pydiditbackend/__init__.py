@@ -396,7 +396,7 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
     if direction == 'float': # to_move is at the heavy end of display_position. So all the others sink, and to_move goes at the lightest end.
         moving_to = results[0].display_position
         for i in xrange(len(results) - 1):
-            new_display_position_for_i = results[i - 1].display_position
+            new_display_position_for_i = results[i + 1].display_position
             old_display_position_for_i = results[i].display_position
             results[i + 1].display_position = -1
             transaction.commit()
