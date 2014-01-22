@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from sqlalchemy.inspection import inspect
 
-from zope.sqlalchemy import ZopeTransactionExtension
+from zope.sqlalchemy import register
 import transaction
 
 from models.Todo import Todo
@@ -21,7 +21,8 @@ from models.Note import Note
 
 from models import Base
 
-DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
+DBSession = scoped_session(sessionmaker())
+register(DBSession, keep_session=True)
 
 import logging
 log = logging.getLogger(__name__)
@@ -161,6 +162,7 @@ def _has_attribute(model_name, attribute):
 
 def commit():
     transaction.commit()
+    DBSession.close()
 
 def flush():
     DBSession.flush() 
@@ -365,6 +367,8 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
         idx = display_positions.index(to_move.display_position)
         or_clause = None
         if direction == 'float':
+            if idx == 0:
+                return
             or_clause = or_(
                 model_class.display_position == to_move.display_position,
                 model_class.display_position == display_positions[idx - 1],
@@ -388,20 +392,47 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
     else:
         raise Exception('move() called without an anchor must be provided "float" or "sink" as direction.')
 
+    # This whole thing is ugly because of the necessity of multiple commits.  I apologize to the world.  If you ignore the multiple commits, I think it doesn't look so bad.
     if direction == 'float': # to_move is at the heavy end of display_position. So all the others sink, and to_move goes at the lightest end.
         moving_to = results[0].display_position
         for i in xrange(len(results) - 1):
-            results[i].display_position = results[i + 1].display_position
+            new_display_position_for_i = results[i - 1].display_position
+            old_display_position_for_i = results[i].display_position
+            results[i + 1].display_position = -1
+            transaction.commit()
+            DBSession.refresh(results[i + 1])
+            results[i].display_position = new_display_position_for_i
+            transaction.commit()
+            DBSession.refresh(results[i])
+            results[i + 1].display_position = old_display_position_for_i
+            transaction.commit()
+            DBSession.refresh(results[i + 1])
         results[-1].display_position = moving_to
     elif direction == 'sink': # to_move is at the light end of display_position. So all the others except the last one float, and to_move goes at one lighter than the heaviest end.
         if len(results) > 2:
             moving_to = results[-2].display_position
             for i in xrange(len(results) - 2, 0, -1):
-                results[i].display_position = results[i - 1].display_position
+                new_display_position_for_i = results[i - 1].display_position
+                old_display_position_for_i = results[i].display_position
+                results[i - 1].display_position = -1
+                transaction.commit()
+                DBSession.refresh(results[i - 1])
+                results[i].display_position = new_display_position_for_i
+                transaction.commit()
+                DBSession.refresh(results[i])
+                results[i - 1].display_position = old_display_position_for_i
+                transaction.commit()
+                DBSession.refresh(results[i - 1])
             results[0].display_position = moving_to
         if final_sink:
-            temp = results[0].display_position
-            results[0].display_position = results[-1].display_position
-            results[-1].display_position = temp
+            display_position_start = results[0].display_position
+            display_position_end = results[-1].display_position
+            results[0].display_position = -1
+            transaction.commit()
+            DBSession.refresh(results[0])
+            results[-1].display_position = display_position_start
+            transaction.commit()
+            DBSession.refresh(results[-1])
+            results[0].display_position = display_position_end
     else:
         raise Exception('move() must be called with direction of "float", "sink", or None.')
