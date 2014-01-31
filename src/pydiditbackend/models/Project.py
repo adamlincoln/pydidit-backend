@@ -116,4 +116,8 @@ class Project(Model, Base):
         return '<Project: {0} {1}>'.format(self.id, self.description)
 
     def get_primary_descriptor(self):
+        return Project.primary_descriptor()
+
+    @staticmethod
+    def primary_descriptor():
         return 'description'

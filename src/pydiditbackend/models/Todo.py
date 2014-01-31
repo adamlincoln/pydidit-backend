@@ -117,4 +117,8 @@ class Todo(Model, Base):
         return str(self)
 
     def get_primary_descriptor(self):
+        return Todo.primary_descriptor()
+
+    @staticmethod
+    def primary_descriptor():
         return 'description'

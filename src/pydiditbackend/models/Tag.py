@@ -34,4 +34,8 @@ class Tag(Model, Base):
         return '<Tag: {0} {1}>'.format(self.id, self.name)
 
     def get_primary_descriptor(self):
+        return Tag.primary_descriptor()
+
+    @staticmethod
+    def primary_descriptor():
         return 'name'

@@ -428,3 +428,23 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
             results[0].display_position = display_position_end
     else:
         raise Exception('move() must be called with direction of "float", "sink", or None.')
+
+# End stuff for moving
+
+# Start stuff for searching
+
+def search(search_string, only=None, exclude=None):
+    to_return = {}
+    objects = ('Todo', 'Project', 'Tag', 'Note')
+    if only is not None:
+        objects = only
+    if exclude is not None:
+        objects = set(objects)
+        for o in exclude:
+            objects.remove(o)
+    for o in objects:
+        primary_descriptor = eval(o).primary_descriptor()
+        to_return[o] = [result.to_dict() for result in DBSession.query(eval(o)).filter(eval('{0}.{1}'.format(o, primary_descriptor)).like(u'%{0}%'.format(search_string))).all()]
+    return to_return
+
+# End stuff for searching
