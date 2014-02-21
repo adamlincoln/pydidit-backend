@@ -68,7 +68,7 @@ def get_like(model_dict, all=False, filter_by=None):
 def get_new_lowest_display_position(model_name):
     display_positions = \
         [result[0] for result in DBSession.query(eval(model_name).display_position).order_by(eval(model_name).display_position).all()]
-    return display_positions[-1] + 1
+    return 0 if not display_positions else int(display_positions[-1]) + 1
 
 
 def make(model_name, description_text_name, display_position=None):
