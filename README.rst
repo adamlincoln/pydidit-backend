@@ -10,6 +10,7 @@ Authors
 -------
 
 Adam J. Lincoln <adamjlincoln@gmail.com>
+Claudio Bryla <claudiobryla@gmail.com>
 
 
 Other stuff
