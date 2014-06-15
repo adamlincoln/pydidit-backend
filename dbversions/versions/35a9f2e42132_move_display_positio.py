@@ -88,18 +88,19 @@ def upgrade():
         #ipshell = InteractiveShellEmbed()
         #ipshell.mainloop(global_ns={}, local_ns={'hi': todos_table})
 
-        if len(todos) > 0:
-            # todos
-            # Make new table with column of new type
-            todos_cols = [copy(todos_col) for todos_col in todos_table.c.values()]
-            for todos_col in todos_cols:
-                todos_col.table = None
-            op.create_table(
-                'todos_new',
-                *todos_cols
-            )
-            todos_new_table = sa.Table('todos_new', meta, autoload=True)
+        # todos
+        # Make new table with column of new type
+        todos_cols = [copy(todos_col) for todos_col in todos_table.c.values() if todos_col.name != 'display_position']
+        todos_cols.append(sa.Column('display_position', sa.BigInteger(), nullable=False))
+        for todos_col in todos_cols:
+            todos_col.table = None
+        op.create_table(
+            'todos_new',
+            *todos_cols
+        )
+        todos_new_table = sa.Table('todos_new', meta, autoload=True)
 
+        if len(todos) > 0:
             # Migrate data
             new_todos_data = []
             for i in xrange(len(todos)):
@@ -118,24 +119,25 @@ def upgrade():
 
             conn.execute(todos_new_table.insert(), new_todos_data)
 
-            # Drop old table
-            op.drop_table('todos')
+        # Drop old table
+        op.drop_table('todos')
 
-            # Rename new table to desired name
-            op.rename_table('todos_new', 'todos')
+        # Rename new table to desired name
+        op.rename_table('todos_new', 'todos')
+
+        # projects
+        # Make new table with column of new type
+        projects_cols = [copy(projects_col) for projects_col in projects_table.c.values() if projects_col.name != 'display_position']
+        projects_cols.append(sa.Column('display_position', sa.BigInteger(), nullable=False))
+        for projects_col in projects_cols:
+            projects_col.table = None
+        op.create_table(
+            'projects_new',
+            *projects_cols
+        )
+        projects_new_table = sa.Table('projects_new', meta, autoload=True)
 
         if len(projects) > 0:
-            # projects
-            # Make new table with column of new type
-            projects_cols = [copy(projects_col) for projects_col in projects_table.c.values()]
-            for projects_col in projects_cols:
-                projects_col.table = None
-            op.create_table(
-                'projects_new',
-                *projects_cols
-            )
-            projects_new_table = sa.Table('projects_new', meta, autoload=True)
-
             # Migrate data
             new_projects_data = []
             for i in xrange(len(projects)):
@@ -153,11 +155,11 @@ def upgrade():
 
             conn.execute(projects_new_table.insert(), new_projects_data)
 
-            # Drop old table
-            op.drop_table('projects')
+        # Drop old table
+        op.drop_table('projects')
 
-            # Rename new table to desired name
-            op.rename_table('projects_new', 'projects')
+        # Rename new table to desired name
+        op.rename_table('projects_new', 'projects')
 
     else:
         op.alter_column(
