@@ -429,6 +429,8 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
     else:
         raise Exception('move() must be called with direction of "float", "sink", or None.')
 
+    return to_move.display_position
+
 # End stuff for moving
 
 # Start stuff for searching
