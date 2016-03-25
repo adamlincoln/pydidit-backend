@@ -22,6 +22,18 @@ class Tag(Model, Base):
     modified_at = Column(DateTime(), nullable=False, default=datetime.now,
                          onupdate=datetime.now)
 
+    @staticmethod
+    def create(tag_names):
+        if isinstance(tag_names, basestring):
+            tag_names = [tag_names]
+
+        new_tags = []
+        for tag_name in tag_names:
+            new_tag = Tag(tag_name)
+            new_tags.append(new_tag)
+
+        return new_tags
+
     def __init__(self, name=None):
         '''Create a new Tag instance
 

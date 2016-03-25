@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from sqlalchemy import Integer
+from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import Column
@@ -78,4 +81,40 @@ todos_tags = Table(
     Column('todo_id', Integer(), ForeignKey('todos.id'), nullable=False),
     Column('tag_id', Integer(), ForeignKey('tags.id'), nullable=False),
     PrimaryKeyConstraint('todo_id', 'tag_id'),
+)
+
+workspace_todos = Table(
+    'workspace_todos', Base.metadata,
+    Column('workspace_id', Integer(), ForeignKey('workspaces.id'), nullable=False),
+    Column('todo_id', Integer(), ForeignKey('todos.id'), nullable=False),
+    Column('created_at', DateTime(), nullable=False, default=datetime.now),
+    Column('modified_at', DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now),
+    PrimaryKeyConstraint('workspace_id', 'todo_id'),
+)
+
+workspace_projects = Table(
+    'workspace_projects', Base.metadata,
+    Column('workspace_id', Integer(), ForeignKey('workspaces.id'), nullable=False),
+    Column('project_id', Integer(), ForeignKey('projects.id'), nullable=False),
+    Column('created_at', DateTime(), nullable=False, default=datetime.now),
+    Column('modified_at', DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now),
+    PrimaryKeyConstraint('workspace_id', 'project_id'),
+)
+
+workspace_tags = Table(
+    'workspace_tags', Base.metadata,
+    Column('workspace_id', Integer(), ForeignKey('workspaces.id'), nullable=False),
+    Column('tag_id', Integer(), ForeignKey('tags.id'), nullable=False),
+    Column('created_at', DateTime(), nullable=False, default=datetime.now),
+    Column('modified_at', DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now),
+    PrimaryKeyConstraint('workspace_id', 'tag_id'),
+)
+
+workspace_notes = Table(
+    'workspace_notes', Base.metadata,
+    Column('workspace_id', Integer(), ForeignKey('workspaces.id'), nullable=False),
+    Column('note_id', Integer(), ForeignKey('notes.id'), nullable=False),
+    Column('created_at', DateTime(), nullable=False, default=datetime.now),
+    Column('modified_at', DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now),
+    PrimaryKeyConstraint('workspace_id', 'note_id'),
 )

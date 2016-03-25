@@ -19,6 +19,18 @@ class Note(Model, Base):
     created_at = Column(DateTime(), nullable=False, default=datetime.now)
     modified_at = Column(DateTime(), nullable=False, default=datetime.now, onupdate=datetime.now)
 
+    @staticmethod
+    def create(note_texts):
+        if isinstance(note_texts, basestring):
+            note_texts = [note_texts]
+
+        new_notes = []
+        for note_text in note_texts:
+            new_note = Note(note_text)
+            new_notes.append(new_note)
+
+        return new_notes
+
     def __init__(self, text=None):
         '''Create a new Note instance
 

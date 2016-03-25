@@ -19,6 +19,11 @@ from models.Project import Project
 from models.Tag import Tag
 from models.Note import Note
 
+from models.User import User
+
+from models.Workspace import Workspace
+from models.WorkspacePermission import WorkspacePermission
+
 from models import Base
 
 DBSession = scoped_session(sessionmaker())
@@ -44,8 +49,36 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
 
 # Start stuff for reading
 
-def get(model_name, all=False, filter_by=None):
-    query = DBSession.query(eval(model_name))
+# Right now, an object will never tell you about its workspace(s).  You can
+# though, get a workspace back in a model_dict if you just made the object.
+def get(user_id, workspace_id, model_name, all=False, filter_by=None):
+    # TODO: validate model_name to avoid eval() injection
+
+    # DEPRECATED COMMENT
+    # Because we need to allow access for an existing Workspace permission
+    # and for an existing object-specific permission, we can't just inner
+    # join both types of permissions.  We'd have to outer join then do
+    # work in the application to determine access, which means we could be
+    # bringing in *every* object (say, Todos!) each time.  I'm choosing now
+    # to instead rely on multiple queries: one via WorkspacePermission and
+    # one via the object's Permission, which will join in the object's info.
+
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_read(user_id):
+        return []
+
+    #workspace_permission_query = \
+        #DBSession.query(WorkspacePermission) \
+                 #.filter_by(user_id=user_id) \
+                 #.filter_by(workspace_id=workspace_id)
+
+    #object_permission_query =
+        #DBSession.query(eval('{0}Permission'.format(model_name)))
+                 #.filter_by(user_id=user_id)
+                 #.filter_by(workspace_id=workspace_id)
+
+    query = getattr(workspace, relationship_name('Workspace', model_name))
+
     if filter_by is not None:
         query = query.filter_by(**filter_by)
     else:
@@ -57,9 +90,8 @@ def get(model_name, all=False, filter_by=None):
     return [obj.to_dict() for obj in results]
 
 
-def get_like(model_dict, all=False, filter_by=None):
-    return get(str(model_dict['type']), all, filter_by)
-
+def get_like(user_id, workspace_id, model_dict, all=False, filter_by=None):
+    return get(user_id, workspace_id, str(model_dict['type']), all, filter_by)
 
 # End stuff for reading
 
@@ -71,83 +103,47 @@ def get_new_lowest_display_position(model_name):
     return 0 if not display_positions else int(display_positions[-1]) + 1
 
 
-def make(model_name, description_text_name, display_position=None):
-    model = eval(model_name)
+def make(user_id, workspace_id, model_name, description_text_name, display_position=None):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return []
 
     return_single = False
-    model_dicts = []
     if isinstance(description_text_name, basestring):
         description_text_name = [description_text_name]
         return_single = True
-    for info in description_text_name:
-        model_dict = {
-            'type': model_name
-        }
-        if hasattr(model, 'description'):
-            model_dict['description'] = info 
-        elif hasattr(model, 'text'):
-            model_dict['text'] = info
-        elif hasattr(model, 'name'):
-            model_dict['name'] = info
 
-        if hasattr(model, 'display_position'):
-            if display_position is None:
-                model_dict['display_position'] = get_new_lowest_display_position(model_name)
-            else:
-                model_dict['display_position'] = display_position
+    new_dicts = []
+    if model_name == 'Todo' or model_name == 'Project':
+        # Todo/Project.create() has some internal looping capability, but I'm
+        # not using it here.
+        for description in description_text_name:
+            new_todo_or_project = eval(model_name).create(
+                description, get_new_lowest_display_position(model_name)
+            )[0]
+            new_todo_or_project.workspaces.append(workspace)
+            DBSession.add(new_todo_or_project)
+            new_dicts.append(new_todo_or_project.to_dict())
+    elif model_name == 'Note' or model_name == 'Tag':
+        # Note.create() has some internal looping capability, but I'm
+        # not using it here.
+        for text_or_name in description_text_name:
+            new_note_or_tag = eval(model_name).create(text_or_name)[0]
+            new_note_or_tag.workspaces.append(workspace)
+            DBSession.add(new_note_or_tag)
+            new_dicts.append(new_note_or_tag.to_dict())
 
-        if return_single:
-            return model_dict
-        else:
-            model_dicts.append(model_dict)
-
-    return model_dicts
-
-
-def make_like(model_dict, description_text_name, display_position=None):
-    return make(model_dict['type'], description_text_name, display_position)
+    return new_dicts[0] if return_single else new_dicts
 
 
-def add_to_db(model_dict):
-    return_single = False
-    new_instances = []
-    if isinstance(model_dict, dict):
-        model_dict = [model_dict]
-        return_single = True
-    for single_model_dict in model_dict:
-        new_instance_parameters = []
-        if 'description' in single_model_dict:
-            new_instance_parameters.append(single_model_dict['description'])
-        elif 'name' in single_model_dict:
-            new_instance_parameters.append(single_model_dict['name'])
-        elif 'text' in single_model_dict:
-            new_instance_parameters.append(single_model_dict['text'])
+def make_like(user_id, workspace_id, model_dict, description_text_name, display_position=None):
+    return make(user_id, workspace_id, model_dict['type'], description_text_name, display_position)
 
-        if 'display_position' in single_model_dict:
-            new_instance_parameters.append(single_model_dict['display_position'])
+# Backward compatibility
+put = make
 
-        new_instance = eval(single_model_dict['type'])(*new_instance_parameters)
-        for key, value in single_model_dict.iteritems():
-            if key not in ('description', 'name', 'text', 'display_position'):
-                setattr(new_instance, key, value)
-
-        new_instances.append(new_instance)
-
-    DBSession.add_all(new_instances)
-    flush()
-    for i in xrange(len(new_instances)):
-        model_dict[i]['id'] = new_instances[i].id
-
-    return model_dict[0] if return_single else model_dict
-
-
-def put(model_name, description_text_name, display_position=None):
-    model_dict = make(model_name, description_text_name, display_position)
-    return add_to_db(model_dict)
-
-
-def put_like(model_dict, description_text_name):
-    return put(str(model_dict['type']), description_text_name)
+def put_like(user_id, workspace_id, model_dict, description_text_name):
+    return put(user_id, workspace_id, str(model_dict['type']), description_text_name)
 
 
 # End stuff for creating
@@ -166,6 +162,13 @@ def commit():
 
 def flush():
     DBSession.flush() 
+
+def get_users():
+    return [{'username': user.username, 'user_id': user.id} for user in DBSession.query(User).all()]
+
+def get_workspaces(user_id):
+    query = DBSession.query(Workspace)
+    return [{'name': workspace.name, 'workspace_id': workspace.id} for workspace in query.all() if workspace.can_read(user_id)]
 
 # End utilities
 

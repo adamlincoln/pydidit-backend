@@ -14,6 +14,7 @@ from sqlalchemy.orm import backref
 import pydiditbackend.models
 
 from Model import Model
+from Workspace import Workspace
 
 Base = pydiditbackend.models.Base
 
@@ -47,7 +48,7 @@ class Todo(Model, Base):
 
     prereq_projects = relation(
         'Project',
-        backref=backref('dependent_todos', lazy='joined', join_depth=1, order_by='Project.display_position'),
+        backref=backref('dependent_todos', lazy='joined', join_depth=1, order_by='Todo.display_position'),
         secondary='todos_prereq_projects',
         lazy='joined',
         join_depth=1,
@@ -82,6 +83,31 @@ class Todo(Model, Base):
         lazy='joined',
         join_depth=1,
     )
+
+    @staticmethod
+    def create(*args):
+        todo_datas = []
+        if len(args) == 1:
+            # Then we expect an iterable of 2-tuples:
+            # ('description', integer display position)
+            todo_datas = args[0]
+        if len(args) == 2:
+            # Then we expect one iterable of descriptions and another of
+            # display_positions.  Alternatively, they could both be scalars
+            descriptions = args[0]
+            display_positions = args[1]
+            if isinstance(descriptions, basestring):
+                descriptions = [descriptions]
+            if isinstance(display_positions, int):
+                display_positions = [display_positions]
+            todo_datas = zip(descriptions, display_positions)
+
+        new_todos = []
+        for todo_data in todo_datas:
+            new_todo = Todo(todo_data[0], todo_data[1])
+            new_todos.append(new_todo)
+
+        return new_todos
 
     def __init__(self, description, display_position, state=u'active',
                  due=None, show_from=None):

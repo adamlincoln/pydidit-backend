@@ -48,7 +48,9 @@ def upgrade():
         sa.Column('write', sa.Boolean(), nullable=False),
         sa.Column('delete', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('modified_at', sa.DateTime(), nullable=False)
+        sa.Column('modified_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'workspace_id', 'user_id', name='pk_workspace_permissions')
     )
 
     op.create_table(
@@ -59,7 +61,9 @@ def upgrade():
         sa.Column('write', sa.Boolean(), nullable=False),
         sa.Column('delete', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('modified_at', sa.DateTime(), nullable=False)
+        sa.Column('modified_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'todo_id', 'user_id', name='pk_todo_permissions')
     )
 
     op.create_table(
@@ -70,7 +74,9 @@ def upgrade():
         sa.Column('write', sa.Boolean(), nullable=False),
         sa.Column('delete', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('modified_at', sa.DateTime(), nullable=False)
+        sa.Column('modified_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'project_id', 'user_id', name='pk_project_permissions')
     )
 
     op.create_table(
@@ -81,7 +87,9 @@ def upgrade():
         sa.Column('write', sa.Boolean(), nullable=False),
         sa.Column('delete', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('modified_at', sa.DateTime(), nullable=False)
+        sa.Column('modified_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'tag_id', 'user_id', name='pk_tag_permissions')
     )
 
     op.create_table(
@@ -92,7 +100,9 @@ def upgrade():
         sa.Column('write', sa.Boolean(), nullable=False),
         sa.Column('delete', sa.Boolean(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.Column('modified_at', sa.DateTime(), nullable=False)
+        sa.Column('modified_at', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint(
+            'note_id', 'user_id', name='pk_note_permissions')
     )
 
     op.create_table(

@@ -48,7 +48,7 @@ class Project(Model, Base):
 
     prereq_todos = relation(
         'Todo',
-        backref=backref('dependent_projects', lazy='joined', join_depth=1, order_by='Todo.display_position'),
+        backref=backref('dependent_projects', lazy='joined', join_depth=1, order_by='Project.display_position'),
         secondary='projects_prereq_todos',
         lazy='joined',
         join_depth=1,
@@ -94,6 +94,31 @@ class Project(Model, Base):
         lazy='joined',
         join_depth=1,
     )
+
+    @staticmethod
+    def create(*args):
+        project_datas = []
+        if len(args) == 1:
+            # Then we expect an iterable of 2-tuples:
+            # ('description', integer display position)
+            project_datas = args[0]
+        if len(args) == 2:
+            # Then we expect one iterable of descriptions and another of
+            # display_positions.  Alternatively, they could both be scalars
+            descriptions = args[0]
+            display_positions = args[1]
+            if isinstance(descriptions, basestring):
+                descriptions = [descriptions]
+            if isinstance(display_positions, int):
+                display_positions = [display_positions]
+            project_datas = zip(descriptions, display_positions)
+
+        new_projects = []
+        for project_data in project_datas:
+            new_project = Project(project_data[0], project_data[1])
+            new_projects.append(new_project)
+
+        return new_projects
 
     def __init__(self, description, display_position, state=u'active',
                  due=None, show_from=None):
