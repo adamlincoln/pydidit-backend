@@ -113,6 +113,7 @@ def make(user_id, workspace_id, model_name, description_text_name, display_posit
         description_text_name = [description_text_name]
         return_single = True
 
+    new_instances = []
     new_dicts = []
     if model_name == 'Todo' or model_name == 'Project':
         # Todo/Project.create() has some internal looping capability, but I'm
@@ -123,6 +124,7 @@ def make(user_id, workspace_id, model_name, description_text_name, display_posit
             )[0]
             new_todo_or_project.workspaces.append(workspace)
             DBSession.add(new_todo_or_project)
+            new_instances.append(new_todo_or_project)
             new_dicts.append(new_todo_or_project.to_dict())
     elif model_name == 'Note' or model_name == 'Tag':
         # Note.create() has some internal looping capability, but I'm
@@ -131,7 +133,11 @@ def make(user_id, workspace_id, model_name, description_text_name, display_posit
             new_note_or_tag = eval(model_name).create(text_or_name)[0]
             new_note_or_tag.workspaces.append(workspace)
             DBSession.add(new_note_or_tag)
+            new_instances.append(new_note_or_tag)
             new_dicts.append(new_note_or_tag.to_dict())
+    flush()
+    for i in xrange(len(new_instances)):
+        new_dicts[i]['id'] = new_instances[i].id
 
     return new_dicts[0] if return_single else new_dicts
 
@@ -163,9 +169,11 @@ def commit():
 def flush():
     DBSession.flush() 
 
+# TODO: note that right now, users are globally discoverable
 def get_users():
     return [{'username': user.username, 'user_id': user.id} for user in DBSession.query(User).all()]
 
+# TODO: note that right now, workspaces are globally discoverable
 def get_workspaces(user_id):
     query = DBSession.query(Workspace)
     return [{'name': workspace.name, 'workspace_id': workspace.id} for workspace in query.all() if workspace.can_read(user_id)]
@@ -174,7 +182,11 @@ def get_workspaces(user_id):
 
 # Start stuff for deleting
 
-def delete_from_db(model_dict):
+def delete_from_db(user_id, workspace_id, model_dict):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_delete(user_id):
+        return []
+
     DBSession.delete(_instance_from_dict(model_dict))
     return model_dict
 
@@ -182,7 +194,11 @@ def delete_from_db(model_dict):
 
 # Start stuff for updating
 
-def set_completed(model_dict):
+def set_completed(user_id, workspace_id, model_dict):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
     if _has_attribute(model_dict['type'], 'completed_at'):
         model_dict['state'] = u'completed'
         model_dict['completed_at'] = datetime.now()
@@ -196,7 +212,11 @@ def set_completed(model_dict):
     else:
         return None
 
-def set_attributes(model_dict, new_values):
+def set_attributes(user_id, workspace_id, model_dict, new_values):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
     model_instance = None
     if 'id' in model_dict:
         model_instance = _instance_from_dict(model_dict)
@@ -209,17 +229,6 @@ def _set_attribute(model_instance, model_dict, attribute, value):
         model_dict[attribute] = value
         if model_instance is not None and hasattr(model_instance, attribute):
             setattr(model_instance, attribute, value)
-
-def swap_display_positions(model_dict_one, model_dict_two):
-    if 'display_position' in model_dict_one and \
-       'display_position' in model_dict_two and \
-       model_dict_one['type'] == model_dict_two['type']:
-
-        temp = model_dict_one['display_position']
-        set_attributes(model_dict_one, {'display_position': model_dict_two['display_position']})
-        set_attributes(model_dict_two, {'display_position': temp})
-
-        return [model_dict_one, model_dict_two]
 
 # End stuff for updating
 
@@ -276,7 +285,14 @@ def relationship_name(parent_type, child_type, *args, **kwargs):
     else:
         return potential_relationships[0].keys()[0]
 
-def link(parent_dict, child_dict, *args, **kwargs):
+def link(user_id, workspace_id, parent_dict, child_dict, *args, **kwargs):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
+    # TODO: When I add in per-record permissions, I think I want write on
+    # both parent and child to allow linking.
+
     attribute = relationship_name(parent_dict['type'], child_dict['type'], *args, **kwargs)
     if attribute is None:
         raise Exception('Cannot find the attribute to link the child to the parent.')
@@ -290,15 +306,29 @@ def link(parent_dict, child_dict, *args, **kwargs):
     parent_dict[attribute].append(child_dict)
     return parent_dict
 
-def unlink(parent_dict, child_dict, *args, **kwargs):
+def unlink(user_id, workspace_id, parent_dict, child_dict, *args, **kwargs):
+    # Permissions enforced in link()
+
     kwargs['unlink'] = True
-    return link(parent_dict, child_dict, *args, **kwargs)
+    return link(user_id, workspace_id, parent_dict, child_dict, *args, **kwargs)
 
 # End stuff for relationships
 
 # Start stuff for moving
 
-def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=False):
+def move(user_id, workspace_id, to_move, anchor=None, direction=None, model_name=None, all_the_way=False):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
+    # TODO: how will this handle side effects and permission?  that is, if I know i can
+    # write to the object to_move, but i don't know if I can write to any of the objects
+    # that will get shuffled to accommodate the movement.
+    # My gut right now says that moving should only be allowed if all of the side affected 
+    # objects are also writable (or in the same workspace?)
+    # Also note that the constraint on display_position is global and NOT workspace specific!
+    # TODO: figure --^ out!
+
     if isinstance(to_move, int) and model_name is not None:
         to_move = _instance_from_dict({'id': to_move, 'type': model_name})
     else:
@@ -438,7 +468,11 @@ def move(to_move, anchor=None, direction=None, model_name=None, all_the_way=Fals
 
 # Start stuff for searching
 
-def search(search_string, only=None, exclude=None):
+def search(user_id, workspace_id, search_string, only=None, exclude=None):
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
     to_return = {}
     objects = ('Todo', 'Project', 'Tag', 'Note')
     if only is not None:
@@ -448,8 +482,10 @@ def search(search_string, only=None, exclude=None):
         for o in exclude:
             objects.remove(o)
     for o in objects:
+        query = getattr(workspace, relationship_name('Workspace', o))
+
         primary_descriptor = eval(o).primary_descriptor()
-        to_return[o] = [result.to_dict() for result in DBSession.query(eval(o)).filter(eval('{0}.{1}'.format(o, primary_descriptor)).like(u'%{0}%'.format(search_string))).all()]
+        to_return[o] = [result.to_dict() for result in query.filter(eval('{0}.{1}'.format(o, primary_descriptor)).like(u'%{0}%'.format(search_string))).all()]
     return to_return
 
 # End stuff for searching
