@@ -14,8 +14,9 @@ import pydiditbackend.models
 
 Base = pydiditbackend.models.Base
 
+from Model import Model
 
-class Workspace(Base):
+class Workspace(Model, Base):
     '''Workspace object'''
     __tablename__ = 'workspaces'
 
@@ -93,10 +94,9 @@ class Workspace(Base):
 
     permissions = relation(
         'WorkspacePermission',
-        #secondary='workspace_permissions',
         lazy='joined',
         join_depth=1,
-        order_by='Workspace.name',
+        order_by='WorkspacePermission.modified_at',
         innerjoin=True
     )
 
@@ -145,3 +145,10 @@ class Workspace(Base):
 
     def __repr__(self):
         return str(self)
+
+    def get_primary_descriptor(self):
+        return Workspace.primary_descriptor()
+
+    @staticmethod
+    def primary_descriptor():
+        return 'name'

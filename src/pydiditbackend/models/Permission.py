@@ -5,15 +5,16 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
+from sqlalchemy.sql.expression import false
 
 from pydiditbackend.models import Base
 
 class Permission(object):
     '''Permission object'''
 
-    read = Column(Boolean, nullable=False, default=False),
-    write = Column(Boolean, nullable=False, default=False),
-    delete = Column(Boolean, nullable=False, default=False),
+    read = Column(Boolean, nullable=False, default=False)
+    write = Column(Boolean, nullable=False, default=False)
+    delete = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     modified_at = Column(
         DateTime,

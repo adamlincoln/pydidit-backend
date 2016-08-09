@@ -26,15 +26,23 @@ from models.WorkspacePermission import WorkspacePermission
 
 from models import Base
 
-DBSession = scoped_session(sessionmaker())
-register(DBSession, keep_session=True)
+DBSession = None
 
 import logging
 log = logging.getLogger(__name__)
 
 def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
                               os.path.expanduser('~/.pydidit-backendrc')),
-               external_config_fp=None):
+               external_config_fp=None,
+               session_override=None):
+    # Allows for the front end to define its own session scope
+    global DBSession
+    if session_override is None:
+        DBSession = scoped_session(sessionmaker())
+        register(DBSession, keep_session=True)
+    else:
+        DBSession = session_override
+
     ini = ConfigParser.SafeConfigParser()
     ini.read(ini_filenames)
     allow_external_config = ini.getboolean('backend', 'allow_external_config')
@@ -151,7 +159,6 @@ put = make
 def put_like(user_id, workspace_id, model_dict, description_text_name):
     return put(user_id, workspace_id, str(model_dict['type']), description_text_name)
 
-
 # End stuff for creating
 
 # Start utilities
@@ -164,19 +171,136 @@ def _has_attribute(model_name, attribute):
 
 def commit():
     transaction.commit()
-    DBSession.close()
 
 def flush():
     DBSession.flush() 
 
 # TODO: note that right now, users are globally discoverable
-def get_users():
-    return [{'username': user.username, 'user_id': user.id} for user in DBSession.query(User).all()]
+def get_users(username=None):
+    query = DBSession.query(User)
+    if username is not None:
+        query = query.filter_by(username=username)
+    return [{'username': user.username, 'user_id': user.id} for user in query.all()]
+
+def create_user(usernames):
+    # Because we assume that a front-end has direct DB access, we are ok with
+    # allowing an anonymous create_user() call.  The pyramid gateway will
+    # impose some auth on top on this.
+    if isinstance(usernames, basestring):
+        usernames = (usernames,)
+
+    new_users = []
+    new_user_dicts = []
+    for username in usernames:
+        new_user = User(username)
+        DBSession.add(new_user)
+
+        # Assigns user id so we can call create_workspace()
+        DBSession.flush()
+
+        new_workspace_dict = create_workspace(
+            new_user.id,
+            username,
+            'Default workspace for {0}'.format(username)
+        )[0]
+
+        new_user_dicts = new_user.to_dict()
+    return new_user_dicts
 
 # TODO: note that right now, workspaces are globally discoverable
-def get_workspaces(user_id):
+def get_workspaces(user_id, workspace_name=None):
     query = DBSession.query(Workspace)
+    if workspace_name is not None:
+        query = query.filter_by(name=workspace_name)
     return [{'name': workspace.name, 'workspace_id': workspace.id} for workspace in query.all() if workspace.can_read(user_id)]
+
+def create_workspace(user_id, names, descriptions):
+    if isinstance(names, basestring) and isinstance(descriptions, basestring):
+        names = (names,)
+        descriptions = (descriptions,)
+
+    if len(names) != len(descriptions):
+        raise Exception('Must pass same number of Workspace names and descriptions.')
+
+    new_workspace_dicts = []
+    for name, description in zip(names, descriptions):
+        new_workspace = Workspace(name, description)
+        DBSession.add(new_workspace)
+
+        # Get a workspace id
+        DBSession.flush()
+
+        workspace_permission = give_permission(
+            user_id,
+            new_workspace.id,
+            user_id,
+            ('read', 'write', 'delete')
+        )
+
+        new_workspace_dicts.append(new_workspace.to_dict())
+
+    return new_workspace_dicts
+
+def give_permission(user_id, workspace_id, target_user_id, permissions):
+    # For now, only allow users with write on a workspace to change
+    # permissions on that workspace.
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return None
+
+    allowed_permissions = ('read', 'write', 'delete')
+    if isinstance(permissions, basestring):
+        permissions = (permissions,)
+
+    # Do we already have a permission record for this user/workspace?
+    workspace_permission = \
+        DBSession.query(WorkspacePermission) \
+                 .filter_by(workspace_id=workspace_id) \
+                 .filter_by(user_id=target_user_id).all()
+
+    if len(workspace_permission) == 0:
+        workspace_permission = WorkspacePermission(
+            user_id=target_user_id,
+            workspace_id=workspace_id
+        )
+        workspace_permission.workspace = workspace
+        DBSession.add(workspace_permission)
+    elif len(workspace_permission) == 1:
+        workspace_permission = workspace_permission[0]
+    # len > 1 is forbidden by primary key on database
+
+    for permission in permissions:
+        if permission in allowed_permissions:
+            setattr(workspace_permission, permission, True)
+
+    return workspace_permission
+
+def revoke_permission(user_id, workspace_id, target_user_id, permissions):
+    # For now, only allow users with write on a workspace to change
+    # permissions on that workspace.
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_write(user_id):
+        return []
+
+    allowed_permissions = ('read', 'write', 'delete')
+    if isinstance(permissions, basestring):
+        permissions = (permissions,)
+
+    workspace_permission = \
+        DBSession.query(WorkspacePermission) \
+                 .filter_by(workspace_id=workspace_id) \
+                 .filter_by(user_id=target_user_id).all()
+
+    if len(workspace_permission) == 1:
+        workspace_permission = workspace_permission[0]
+
+        for permission in permissions:
+            if permission in allowed_permissions:
+                # Never let a user revoke his/her own write permission, to avoid someone
+                # getting locked out of a workwpace entirely.
+                if not (user_id == target_user_id and permission == 'write'):
+                    setattr(workspace_permission, permission, False)
+    # len > 1 is forbidden by primary key on database
 
 # End utilities
 
@@ -326,8 +450,12 @@ def move(user_id, workspace_id, to_move, anchor=None, direction=None, model_name
     # that will get shuffled to accommodate the movement.
     # My gut right now says that moving should only be allowed if all of the side affected 
     # objects are also writable (or in the same workspace?)
-    # Also note that the constraint on display_position is global and NOT workspace specific!
-    # TODO: figure --^ out!
+    # Or is it that, even if display_position is not specific to a workspace but is global,
+    # no movement in one workspace will effect the display in another?  I think this is true.
+    # This means that it's ok to not check intervening objects for now, but when we do
+    # permissions on specific objects within workspaces, we will likely have to TODO revisit this.
+    # So note that the constraint on display_position is global and NOT workspace specific!
+    # We're leaving it this way for now.
 
     if isinstance(to_move, int) and model_name is not None:
         to_move = _instance_from_dict({'id': to_move, 'type': model_name})
@@ -469,11 +597,12 @@ def move(user_id, workspace_id, to_move, anchor=None, direction=None, model_name
 # Start stuff for searching
 
 def search(user_id, workspace_id, search_string, only=None, exclude=None):
-    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
-    if not workspace.can_write(user_id):
-        return None
-
     to_return = {}
+
+    workspace = DBSession.query(Workspace).filter_by(id=workspace_id).one()
+    if not workspace.can_read(user_id):
+        return to_return
+
     objects = ('Todo', 'Project', 'Tag', 'Note')
     if only is not None:
         objects = only

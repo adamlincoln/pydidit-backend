@@ -14,7 +14,8 @@ class Model(object):
             relationship_names.extend([relationship_name for relationship_name in inspect(self.__class__).mapper.relationships.keys()])
 
         to_return['type'] = self.__class__.__name__
-        to_return['primary_descriptor'] = self.get_primary_descriptor()
+        if hasattr(self, 'get_primary_descriptor'):
+            to_return['primary_descriptor'] = self.get_primary_descriptor()
 
         for attr in relationship_names: # Will only run if follow_relationships is True; see above
             value = getattr(self, attr)
