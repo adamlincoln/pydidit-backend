@@ -18,6 +18,7 @@ Install
 -------
 
 cp pyditit.sample-ini ~/.pydiditrc
+
 cp alembic.sample-ini alembic.ini
 
 Modify sqlalchemy.url in both .pydiditrc and alembic.ini 
