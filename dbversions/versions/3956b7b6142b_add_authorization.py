@@ -141,7 +141,7 @@ def upgrade():
     users_table = sa.Table('users', meta, autoload=True)
     conn.execute(users_table.insert(), [{
         'id': 0,
-        'username': 'admin',
+        'username': u'admin',
         'created_at': now,
         'modified_at': now,
     }])
@@ -149,7 +149,7 @@ def upgrade():
     workspaces_table = sa.Table('workspaces', meta, autoload=True)
     conn.execute(workspaces_table.insert(), [{
         'id': 0,
-        'name': 'Default',
+        'name': u'Default',
         'created_at': now,
         'modified_at': now,
     }])
