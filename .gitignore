@@ -2,6 +2,7 @@
 *.swp
 *.db
 pydidit*.ini
+alembic*.ini
 .coverage
 
 .installed.cfg

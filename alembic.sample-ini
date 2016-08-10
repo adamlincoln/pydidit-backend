@@ -12,7 +12,7 @@ script_location = dbversions
 # revision_environment = false
 
 #sqlalchemy.url = driver://user:pass@localhost/dbname
-sqlalchemy.url = sqlite:////home/adamweb/pydiditdev.db
+sqlalchemy.url = sqlite:////path/to/your/pydidit.db
 
 
 # Logging configuration
