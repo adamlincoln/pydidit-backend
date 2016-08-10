@@ -14,13 +14,17 @@ Adam J. Lincoln <adamjlincoln@gmail.com>
 Claudio Bryla <claudiobryla@gmail.com>
 
 
-Other stuff
------------
+Install
+-------
 
-To set up database initially, do
+cp pyditit.sample-ini ~/.pydiditrc
+cp alembic.sample-ini alembic.ini
+
+Modify sqlalchemy.url in both .pydiditrc and alembic.ini 
 
 alembic upgrade head
 
+You did it!
 
 Credits
 -------
