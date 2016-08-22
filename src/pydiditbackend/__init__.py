@@ -201,7 +201,7 @@ def create_user(usernames):
         new_workspace_dict = create_workspace(
             new_user.id,
             username,
-            'Default workspace for {0}'.format(username)
+            u'Default workspace for {0}'.format(username)
         )[0]
 
         new_user_dicts = new_user.to_dict()
@@ -230,16 +230,42 @@ def create_workspace(user_id, names, descriptions):
         # Get a workspace id
         DBSession.flush()
 
-        workspace_permission = give_permission(
+        workspace_permission = _give_permission_no_acl_check(
+            new_workspace,
             user_id,
-            new_workspace.id,
-            user_id,
-            ('read', 'write', 'delete')
+            ('read', 'write', 'delete'),
+            False
         )
 
         new_workspace_dicts.append(new_workspace.to_dict())
 
     return new_workspace_dicts
+
+def _edit_permission_no_acl_check(workspace, target_user_id, permissions,
+                                  revoke=False):
+    allowed_permissions = ('read', 'write', 'delete')
+    if isinstance(permissions, basestring):
+        permissions = (permissions,)
+
+    # Do we already have a permission record for this user/workspace?
+    existing_permissions = \
+        [perm for perm in workspace.permissions
+         if perm.user_id == target_user_id]
+    if len(existing_permissions) == 0:
+        workspace_permission = WorkspacePermission(
+            user_id=target_user_id,
+            workspace=workspace
+        )
+        workspace.permissions.append(workspace_permission)
+        existing_permissions = [workspace_permission]
+    # len > 1 is forbidden by primary key on database?
+
+    for permission in permissions:
+        if permission in allowed_permissions:
+            setattr(existing_permissions[0], permission, not revoke)
+
+    return workspace.permissions[0]
+
 
 def give_permission(user_id, workspace_id, target_user_id, permissions):
     # For now, only allow users with write on a workspace to change
@@ -248,32 +274,12 @@ def give_permission(user_id, workspace_id, target_user_id, permissions):
     if not workspace.can_write(user_id):
         return None
 
-    allowed_permissions = ('read', 'write', 'delete')
-    if isinstance(permissions, basestring):
-        permissions = (permissions,)
-
-    # Do we already have a permission record for this user/workspace?
-    workspace_permission = \
-        DBSession.query(WorkspacePermission) \
-                 .filter_by(workspace_id=workspace_id) \
-                 .filter_by(user_id=target_user_id).all()
-
-    if len(workspace_permission) == 0:
-        workspace_permission = WorkspacePermission(
-            user_id=target_user_id,
-            workspace_id=workspace_id
-        )
-        workspace_permission.workspace = workspace
-        DBSession.add(workspace_permission)
-    elif len(workspace_permission) == 1:
-        workspace_permission = workspace_permission[0]
-    # len > 1 is forbidden by primary key on database
-
-    for permission in permissions:
-        if permission in allowed_permissions:
-            setattr(workspace_permission, permission, True)
-
-    return workspace_permission
+    return _edit_permission_no_acl_check(
+        workspace,
+        target_user_id,
+        permissions,
+        False
+    )
 
 def revoke_permission(user_id, workspace_id, target_user_id, permissions):
     # For now, only allow users with write on a workspace to change
@@ -282,25 +288,12 @@ def revoke_permission(user_id, workspace_id, target_user_id, permissions):
     if not workspace.can_write(user_id):
         return []
 
-    allowed_permissions = ('read', 'write', 'delete')
-    if isinstance(permissions, basestring):
-        permissions = (permissions,)
-
-    workspace_permission = \
-        DBSession.query(WorkspacePermission) \
-                 .filter_by(workspace_id=workspace_id) \
-                 .filter_by(user_id=target_user_id).all()
-
-    if len(workspace_permission) == 1:
-        workspace_permission = workspace_permission[0]
-
-        for permission in permissions:
-            if permission in allowed_permissions:
-                # Never let a user revoke his/her own write permission, to avoid someone
-                # getting locked out of a workwpace entirely.
-                if not (user_id == target_user_id and permission == 'write'):
-                    setattr(workspace_permission, permission, False)
-    # len > 1 is forbidden by primary key on database
+    return _edit_permission_no_acl_check(
+        workspace,
+        target_user_id,
+        permissions,
+        True
+    )
 
 # End utilities
 

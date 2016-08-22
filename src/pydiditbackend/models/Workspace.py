@@ -96,8 +96,7 @@ class Workspace(Model, Base):
         'WorkspacePermission',
         lazy='joined',
         join_depth=1,
-        order_by='WorkspacePermission.modified_at',
-        innerjoin=True
+        order_by='WorkspacePermission.modified_at'
     )
 
     @property
