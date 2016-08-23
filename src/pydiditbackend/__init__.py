@@ -230,7 +230,7 @@ def create_workspace(user_id, names, descriptions):
         # Get a workspace id
         DBSession.flush()
 
-        workspace_permission = _give_permission_no_acl_check(
+        workspace_permission = _edit_permission_no_acl_check(
             new_workspace,
             user_id,
             ('read', 'write', 'delete'),
