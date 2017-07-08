@@ -551,6 +551,9 @@ def move(user_id, workspace_id, to_move, anchor=None, direction=None, model_name
     else:
         raise Exception('move() called without an anchor must be provided "float" or "sink" as direction.')
 
+    if len(results) == 0:
+        return 0
+
     # This whole thing is ugly because of the necessity of multiple commits.  I apologize to the world.  If you ignore the multiple commits, I think it doesn't look so bad.
     if direction == 'float': # to_move is at the heavy end of display_position. So all the others sink, and to_move goes at the lightest end.
         moving_to = results[0].display_position
