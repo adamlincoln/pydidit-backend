@@ -31,8 +31,7 @@ DBSession = None
 import logging
 log = logging.getLogger(__name__)
 
-def initialize(ini_filenames=(os.path.expanduser('~/.pydiditrc'),
-                              os.path.expanduser('~/.pydidit-backendrc')),
+def initialize(ini_filenames=(os.path.expanduser('~/.pydidit-backendrc'),),
                external_config_fp=None,
                session_override=None):
     # Allows for the front end to define its own session scope
