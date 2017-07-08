@@ -7,9 +7,9 @@ from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy.sql.expression import false
 
-from pydiditbackend.models import Base
+from pydiditbackend.models.Model import Model
 
-class Permission(object):
+class Permission(Model):
     '''Permission object'''
 
     read = Column(Boolean, nullable=False, default=False)

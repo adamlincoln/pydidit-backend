@@ -242,7 +242,7 @@ def create_workspace(user_id, names, descriptions):
             False
         )
 
-        new_workspace_dicts.append(new_workspace.to_dict(False))
+        new_workspace_dicts.append(new_workspace.to_dict())
 
     return new_workspace_dicts
 
