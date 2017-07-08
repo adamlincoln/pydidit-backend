@@ -31,9 +31,5 @@ setup(name='pydidit-backend',
     packages=find_packages('src'),
     package_dir = {'': 'src'},include_package_data=True,
     zip_safe=False,
-    install_requires=install_requires,
-    entry_points={
-        'console_scripts':
-            ['pydidit-backend=pydiditbackend:main']
-    }
+    install_requires=install_requires
 )
