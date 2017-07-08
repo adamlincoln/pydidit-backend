@@ -211,7 +211,13 @@ def get_workspaces(user_id, workspace_name=None):
     query = DBSession.query(Workspace)
     if workspace_name is not None:
         query = query.filter_by(name=workspace_name)
-    return [{'name': workspace.name, 'workspace_id': workspace.id} for workspace in query.all() if workspace.can_read(user_id)]
+    return [
+        {
+            'name': workspace.name,
+            'id': workspace.id,
+            'type': 'Workspace'
+        } for workspace in query.all() if workspace.can_read(user_id)
+    ]
 
 def create_workspace(user_id, names, descriptions):
     if isinstance(names, basestring) and isinstance(descriptions, basestring):
@@ -236,7 +242,7 @@ def create_workspace(user_id, names, descriptions):
             False
         )
 
-        new_workspace_dicts.append(new_workspace.to_dict())
+        new_workspace_dicts.append(new_workspace.to_dict(False))
 
     return new_workspace_dicts
 
