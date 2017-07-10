@@ -284,7 +284,7 @@ def give_permission(user_id, workspace_id, target_user_id, permissions):
         target_user_id,
         permissions,
         False
-    )
+    ).to_dict()
 
 def revoke_permission(user_id, workspace_id, target_user_id, permissions):
     # For now, only allow users with write on a workspace to change
@@ -298,7 +298,7 @@ def revoke_permission(user_id, workspace_id, target_user_id, permissions):
         target_user_id,
         permissions,
         True
-    )
+    ).to_dict()
 
 # End utilities
 
