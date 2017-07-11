@@ -44,9 +44,12 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydidit-backendrc'),),
 
     ini = ConfigParser.SafeConfigParser()
     ini.read(ini_filenames)
-    allow_external_config = ini.getboolean('backend', 'allow_external_config')
-    if allow_external_config is True and external_config_fp is not None:
-        ini.readfp(external_config_fp)
+
+    if ini.has_option('backend', 'allow_external_config'):
+        allow_external_config = ini.getboolean('backend', 'allow_external_config')
+        if allow_external_config is True and external_config_fp is not None:
+            ini.readfp(external_config_fp)
+
     settings = dict(ini.items('backend'))
 
     engine = engine_from_config(settings, 'sqlalchemy.')
