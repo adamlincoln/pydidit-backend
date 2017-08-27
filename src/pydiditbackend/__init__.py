@@ -31,8 +31,7 @@ DBSession = None
 import logging
 log = logging.getLogger(__name__)
 
-def initialize(ini_filenames=(os.path.expanduser('~/.pydidit-backendrc'),),
-               external_config_fp=None,
+def initialize(backend_settings,
                session_override=None):
     # Allows for the front end to define its own session scope
     global DBSession
@@ -42,14 +41,7 @@ def initialize(ini_filenames=(os.path.expanduser('~/.pydidit-backendrc'),),
     else:
         DBSession = session_override
 
-    ini = ConfigParser.SafeConfigParser()
-    ini.read(ini_filenames)
-    allow_external_config = ini.getboolean('backend', 'allow_external_config')
-    if allow_external_config is True and external_config_fp is not None:
-        ini.readfp(external_config_fp)
-    settings = dict(ini.items('backend'))
-
-    engine = engine_from_config(settings, 'sqlalchemy.')
+    engine = engine_from_config(backend_settings, 'sqlalchemy.')
     Base.metadata.bind = engine
     DBSession.configure(bind=engine)
 
